@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="LabSains Digital: simulasi eksperimen fisika dan kimia berbasis web interaktif.">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<title>LabSains Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: intro, two-row experiment picker (Fisika / Kimia), then one experiment at a time:
+   stage (canvas or diagram) beside an instrument panel, formulas and questions below. */
+:root{
+  --bg:#EBF2F0; --surface:#FBFDFC; --ink:#0F2420; --muted:#4A6761; --line:#C6D6D2; --grid:#DCE8E5;
+  --accent:#0A7B84; --accent-ink:#FFFFFF; --accent-text:#0A7B84; --accent-soft:#D3ECEE; --mag:#C2255C;
+  --glow1:rgba(249,115,22,.16); --glow2:rgba(37,99,235,.13);
+  --hl1:#FFD2A8; --hl2:#A5EAF6; --hl3:#FBC2DC;
+  --f-display:'Familjen Grotesk',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1614; --surface:#122220; --ink:#E4F1EE; --muted:#92B2AB; --line:#27413B; --grid:#142826;
+    --accent:#3CC3CE; --accent-ink:#06201F; --accent-text:#3CC3CE; --accent-soft:#12383A; --mag:#F0689A;
+    --glow1:rgba(251,146,60,.14); --glow2:rgba(96,165,250,.14);
+    --hl1:#8A4210; --hl2:#0F6272; --hl3:#86305A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1614; --surface:#122220; --ink:#E4F1EE; --muted:#92B2AB; --line:#27413B; --grid:#142826;
+  --accent:#3CC3CE; --accent-ink:#06201F; --accent-text:#3CC3CE; --accent-soft:#12383A; --mag:#F0689A;
+    --glow1:rgba(251,146,60,.14); --glow2:rgba(96,165,250,.14);
+    --hl1:#8A4210; --hl2:#0F6272; --hl3:#86305A; color-scheme:dark;
+}
+/* satu warna per eksperimen: fill terang, teks di atasnya, versi gelap untuk teks dan garis, tint, dan warna kedua */
+[data-c="parabola"]{--accent:#F97316;--accent-ink:#1B0B00;--accent-text:#C2410C;--accent-soft:#FFEBD9;--mag:#1D4ED8}
+[data-c="bandul"]{--accent:#2563EB;--accent-ink:#FFFFFF;--accent-text:#1D4ED8;--accent-soft:#E0EAFF;--mag:#EA580C}
+[data-c="ohm"]{--accent:#FACC15;--accent-ink:#1C1500;--accent-text:#A16207;--accent-soft:#FEF3C7;--mag:#DB2777}
+[data-c="gelombang"]{--accent:#22D3EE;--accent-ink:#00262E;--accent-text:#0E7490;--accent-soft:#D5F6FC;--mag:#E11D48}
+[data-c="titrasi"]{--accent:#EC4899;--accent-ink:#2B0517;--accent-text:#BE185D;--accent-soft:#FCE0EE;--mag:#0F9D8A}
+[data-c="ph"]{--accent:#4ADE80;--accent-ink:#052E16;--accent-text:#15803D;--accent-soft:#DCFCE7;--mag:#7C3AED}
+[data-c="gas"]{--accent:#7C3AED;--accent-ink:#FFFFFF;--accent-text:#6D28D9;--accent-soft:#EDE4FF;--mag:#EA580C}
+[data-c="laju"]{--accent:#F05252;--accent-ink:#2A0505;--accent-text:#B91C1C;--accent-soft:#FEE2E2;--mag:#0369A1}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) [data-c="parabola"]{--accent:#FB923C;--accent-ink:#1B0B00;--accent-text:#FDBA74;--accent-soft:#3B2111;--mag:#7DA6FF}
+  :root:not([data-theme="light"]) [data-c="bandul"]{--accent:#60A5FA;--accent-ink:#06142E;--accent-text:#93C5FD;--accent-soft:#15264A;--mag:#FDBA74}
+  :root:not([data-theme="light"]) [data-c="ohm"]{--accent:#FDE047;--accent-ink:#1C1500;--accent-text:#FDE047;--accent-soft:#3A3210;--mag:#F9A8D4}
+  :root:not([data-theme="light"]) [data-c="gelombang"]{--accent:#22D3EE;--accent-ink:#00262E;--accent-text:#67E8F9;--accent-soft:#0D3640;--mag:#FDA4AF}
+  :root:not([data-theme="light"]) [data-c="titrasi"]{--accent:#F472B6;--accent-ink:#2B0517;--accent-text:#F9A8D4;--accent-soft:#471530;--mag:#5EEAD4}
+  :root:not([data-theme="light"]) [data-c="ph"]{--accent:#4ADE80;--accent-ink:#052E16;--accent-text:#86EFAC;--accent-soft:#123A20;--mag:#C4B5FD}
+  :root:not([data-theme="light"]) [data-c="gas"]{--accent:#A78BFA;--accent-ink:#1A0A47;--accent-text:#C4B5FD;--accent-soft:#2B2160;--mag:#FDBA74}
+  :root:not([data-theme="light"]) [data-c="laju"]{--accent:#F87171;--accent-ink:#2A0505;--accent-text:#FCA5A5;--accent-soft:#4A1B1B;--mag:#7DD3FC}
+}
+:root[data-theme="dark"] [data-c="parabola"]{--accent:#FB923C;--accent-ink:#1B0B00;--accent-text:#FDBA74;--accent-soft:#3B2111;--mag:#7DA6FF}
+:root[data-theme="dark"] [data-c="bandul"]{--accent:#60A5FA;--accent-ink:#06142E;--accent-text:#93C5FD;--accent-soft:#15264A;--mag:#FDBA74}
+:root[data-theme="dark"] [data-c="ohm"]{--accent:#FDE047;--accent-ink:#1C1500;--accent-text:#FDE047;--accent-soft:#3A3210;--mag:#F9A8D4}
+:root[data-theme="dark"] [data-c="gelombang"]{--accent:#22D3EE;--accent-ink:#00262E;--accent-text:#67E8F9;--accent-soft:#0D3640;--mag:#FDA4AF}
+:root[data-theme="dark"] [data-c="titrasi"]{--accent:#F472B6;--accent-ink:#2B0517;--accent-text:#F9A8D4;--accent-soft:#471530;--mag:#5EEAD4}
+:root[data-theme="dark"] [data-c="ph"]{--accent:#4ADE80;--accent-ink:#052E16;--accent-text:#86EFAC;--accent-soft:#123A20;--mag:#C4B5FD}
+:root[data-theme="dark"] [data-c="gas"]{--accent:#A78BFA;--accent-ink:#1A0A47;--accent-text:#C4B5FD;--accent-soft:#2B2160;--mag:#FDBA74}
+:root[data-theme="dark"] [data-c="laju"]{--accent:#F87171;--accent-ink:#2A0505;--accent-text:#FCA5A5;--accent-soft:#4A1B1B;--mag:#7DD3FC}
+*{box-sizing:border-box}
+body{
+  background-color:var(--bg);
+  background-image:radial-gradient(900px 460px at 8% 0,var(--glow1),transparent 70%),radial-gradient(800px 420px at 96% 0,var(--glow2),transparent 70%),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:auto,auto,28px 28px,28px 28px;
+  background-repeat:no-repeat,no-repeat,repeat,repeat;
+  color:var(--ink);font:400 15px/1.6 var(--f-body);
+  padding-inline:16px;padding-block:0 48px;
+}
+.wrap{max-width:1120px;margin-inline:auto}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:16px;border-bottom:1px solid var(--line)}
+.brand{font:700 1.15rem var(--f-display);letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.brand svg{width:26px;height:26px;flex:none}
+.tag{font:500 .72rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:right}
+.intro{padding-block:36px 24px;max-width:70ch}
+.intro h1{font:700 clamp(2.2rem,6vw,3.6rem)/1.02 var(--f-display);letter-spacing:-.025em;margin:0 0 14px;text-wrap:balance}
+.intro p{margin:0;color:var(--muted);font-size:1.05rem}
+.picker{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.group h2{font:500 .75rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.tabs{display:grid;gap:8px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.tab{appearance:none;text-align:left;background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:10px 12px;border-radius:6px;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tab b{font:600 .95rem/1.25 var(--f-display)}
+.tab span{font-size:.78rem;color:var(--muted)}
+.tab:hover{border-color:var(--accent)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab[aria-selected="true"] span{color:var(--accent-ink);opacity:.85}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:900px){.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.exp{margin-top:32px}
+.exp-head{max-width:68ch}
+.kicker{font:500 .75rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
+.exp .title{font:700 clamp(1.7rem,4vw,2.3rem)/1.12 var(--f-display);letter-spacing:-.015em;margin:.25em 0 .35em;text-wrap:balance}
+.lede{color:var(--muted);margin:0}
+.exp-body{display:grid;gap:20px;margin-top:20px;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start}
+@media(max-width:900px){.exp-body{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:14px;min-width:0}
+canvas{display:block;width:100%;aspect-ratio:16/10;max-width:100%}
+.panel{display:flex;flex-direction:column;gap:20px;min-width:0}
+.sect{font:500 .72rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.ctls{display:flex;flex-direction:column;gap:14px}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:baseline}
+.ctl label{font-weight:500}
+.ctl output{font:500 .95rem var(--f-mono);font-variant-numeric:tabular-nums}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:6px 0 0;height:24px}
+.ctl.sel{grid-template-columns:minmax(0,1fr)}
+select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:600 .9rem var(--f-body);padding:9px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{appearance:none;border:0;background:transparent;color:var(--ink);font:600 .9rem var(--f-body);padding:9px 18px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.reads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:0}
+.reads>div{background:var(--surface);padding:10px 12px;min-width:0}
+.reads .wide{grid-column:1/-1}
+.reads dt{font:500 .68rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.reads dd{margin:2px 0 0;font:500 1.1rem/1.35 var(--f-mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.reads dd small{font-size:.72rem;color:var(--muted);margin-left:4px}
+.reads dd.txt{font:500 .95rem/1.4 var(--f-body)}
+.hint{font-size:.8rem;color:var(--muted);margin:8px 0 0}
+.notes{display:grid;gap:24px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:28px;padding-top:20px;border-top:1px solid var(--line)}
+@media(max-width:700px){.notes{grid-template-columns:minmax(0,1fr)}}
+.notes h3{font:500 .72rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.formula{font:400 .92rem/1.5 var(--f-mono);overflow-x:auto}
+.formula p{margin:0 0 6px}
+.notes ol{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font:400 .82rem var(--f-mono);font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:500}
+td.empty{text-align:left;color:var(--muted)}
+
+/* diagrams */
+.diagram svg{width:100%;height:auto;display:block}
+.wire{fill:none;stroke:var(--muted);stroke-opacity:.5;stroke-width:3;stroke-linejoin:round}
+.flow{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:2 10;animation:flow linear infinite}
+@keyframes flow{to{stroke-dashoffset:-12}}
+@media(prefers-reduced-motion:reduce){.flow{animation:none}}
+.plate{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
+.res{fill:var(--surface);stroke:var(--ink);stroke-width:2}
+.rlab{font:600 13px var(--f-display);fill:var(--ink)}
+.lbl{font:500 13px var(--f-mono);fill:var(--ink)}
+.dim{font:400 12px var(--f-mono);fill:var(--muted)}
+.apparatus{flex:none;width:150px}
+.apparatus svg{width:150px;height:auto;display:block}
+.ap-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.ap-txt{font:400 8px var(--f-mono);fill:var(--muted)}
+.titr{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.titr .curve{flex:1 1 250px;min-width:0}
+.phtop{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.beaker{width:170px;max-width:100%;height:auto;flex:none}
+.phbig .num{font:700 4rem/1 var(--f-display);margin:0;font-variant-numeric:tabular-nums}
+.phbig .kind{font:500 1rem var(--f-mono);margin:6px 0 0;color:var(--muted)}
+.phbar{position:relative;height:28px;border-radius:4px;margin-top:10px}
+.phbar i{position:absolute;top:-6px;width:4px;height:calc(100% + 12px);background:var(--ink);border-radius:2px;transform:translateX(-50%);box-shadow:0 0 0 2px var(--surface)}
+.phticks{position:relative;height:20px;margin-top:8px;font:400 .75rem var(--f-mono);color:var(--muted)}
+.phticks span{position:absolute;transform:translateX(-50%)}
+.phends{display:flex;justify-content:space-between;font:500 .72rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;font:500 .8rem var(--f-body);padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip i{width:10px;height:10px;border-radius:50%;flex:none}
+.chip em{font:400 .75rem var(--f-mono);font-style:normal;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+/* penerapan warna */
+.bar{border-bottom:0}
+.spectrum{display:flex;height:5px;border-radius:0 0 4px 4px;overflow:hidden}
+.spectrum i{flex:1;background:var(--accent)}
+.hl{display:block;width:fit-content;max-width:100%;padding-inline:.12em;margin-inline:-.12em;border-radius:.1em}
+.hl.a{background:linear-gradient(transparent 58%,var(--hl1) 58% 90%,transparent 90%)}
+.hl.b{background:linear-gradient(transparent 58%,var(--hl2) 58% 90%,transparent 90%)}
+.hl.c{background:linear-gradient(transparent 58%,var(--hl3) 58% 90%,transparent 90%)}
+.tab{background:var(--accent-soft);border-color:transparent;padding-left:34px;position:relative}
+.tab::before{content:"";position:absolute;left:12px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--accent)}
+.tab:hover{border-color:var(--accent-text)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab[aria-selected="true"]::before{background:var(--accent-ink)}
+.tab[aria-selected="true"] span{color:var(--accent-ink);opacity:.85}
+:focus-visible{outline-color:var(--accent-text)}
+.exp-head{background:var(--accent-soft);border-radius:10px;padding:20px 22px;max-width:none}
+.exp-head>*{max-width:68ch}
+.kicker{color:var(--accent-text)}
+.stage{border:2px solid var(--accent-soft)}
+.sect,.notes h3{color:var(--accent-text)}
+.reads{background:var(--accent-soft);border-color:var(--accent-soft)}
+.reads dt,.reads dd{color:var(--accent-text)}
+.btn.ghost:hover{border-color:var(--accent-text)}
+.chip[aria-pressed="true"]{border-color:var(--accent-text)}
+.ctl input[type=range]{accent-color:var(--accent-text)}
+.flow{stroke:var(--accent-text)}
+details.key summary{color:var(--accent-text)}
+fieldset.q.ok{border-color:var(--accent-text)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-right:8px}
+/* portal masuk */
+html.is-gate,html.is-gate body{overflow:hidden}
+.gt{position:fixed;inset:0;z-index:50;display:flex;overflow-x:hidden;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px 64px;background-color:var(--bg);
+  background-image:radial-gradient(900px 460px at 8% 0,var(--glow1),transparent 70%),radial-gradient(800px 460px at 96% 100%,var(--glow2),transparent 70%),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:auto,auto,28px 28px,28px 28px;background-repeat:no-repeat,no-repeat,repeat,repeat;
+  transition:opacity .55s ease,transform .7s cubic-bezier(.7,0,.3,1)}
+.gt[hidden]{display:none}
+.gt.out{opacity:0;transform:translateY(-6%) scale(1.03);pointer-events:none}
+.gt-deco{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.gt-ring{position:absolute;left:50%;top:50%;width:min(125vmin,1000px);aspect-ratio:1;translate:-50% -50%}
+.gt-ring svg{display:block;width:100%;height:100%;animation:gt-spin 140s linear infinite}
+.gt-r1{fill:none;stroke:var(--line);stroke-width:.7;stroke-dasharray:2 3}
+.gt-r2{fill:none;stroke:var(--line);stroke-width:1.2;stroke-dasharray:.1 3.4;stroke-linecap:round}
+.gt-rd{fill:var(--accent)}
+.gt-ob{position:absolute;left:var(--x,auto);right:var(--r,auto);top:calc(var(--y) + env(safe-area-inset-top,0px));width:var(--s,clamp(84px,9.5vw,130px));animation:gt-bob var(--d,6s) ease-in-out infinite alternate;animation-delay:var(--dl,0s)}
+.gt-ob svg{display:block;width:100%;height:auto;overflow:visible}
+.gt-ob svg *{fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.gt-ob svg .gt-fa{fill:var(--accent)}
+.gt-ob svg .gt-fs{fill:var(--accent-soft)}
+.gt-ob svg .gt-fw{fill:var(--surface)}
+.gt-ob svg .gt-fm{fill:var(--mag)}
+.gt-ob svg .gt-sm{stroke:var(--mag)}
+.gt-ob svg .gt-n{stroke:none}
+.gt-ob svg .gt-grid{stroke:var(--line);stroke-width:1}
+.gt-ob svg .gt-dash{stroke-dasharray:3 6}
+.gt-ob svg .gt-glow{animation:gt-glow 2.4s ease-in-out infinite alternate}
+.gt-ob svg .gt-rays{animation:gt-glow 1.6s ease-in-out infinite alternate}
+.gt-ob svg .gt-bub{animation:gt-rise 3s ease-in infinite}
+.gt-ob svg .gt-bub.b2{animation-delay:-1.5s}
+.gt-swing{transform-origin:50px 14px;animation:gt-swing 2.6s ease-in-out infinite alternate}
+.gt-spin{transform-origin:50px 56px;animation:gt-spin 14s linear infinite}
+.gt-sw{animation:gt-wave 2s linear infinite}
+@keyframes gt-bob{from{transform:translateY(-9px) rotate(-3deg)}to{transform:translateY(11px) rotate(3deg)}}
+@keyframes gt-swing{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+@keyframes gt-spin{to{transform:rotate(360deg)}}
+@keyframes gt-wave{to{transform:translateX(-40px)}}
+@keyframes gt-glow{from{opacity:.3}to{opacity:1}}
+@keyframes gt-rise{0%{transform:translateY(8px);opacity:0}25%{opacity:1}100%{transform:translateY(-18px);opacity:0}}
+@keyframes gt-tw{from{opacity:.25}to{opacity:.95}}
+@keyframes gt-tick{to{transform:translateX(-50%)}}
+.gt-o1{--x:5%;--y:8%;--d:6s;--dl:-1s}
+.gt-o2{--x:15%;--y:31%;--d:5.2s;--dl:-2.4s}
+.gt-o3{--x:4%;--y:54%;--d:6.6s;--dl:-.5s}
+.gt-o4{--x:14%;--y:73%;--d:5.8s;--dl:-3s}
+.gt-o5{--r:5%;--y:9%;--d:6.4s;--dl:-2s}
+.gt-o6{--r:15%;--y:31%;--d:5.4s;--dl:-.8s}
+.gt-o7{--r:4%;--y:54%;--d:6.2s;--dl:-3.4s}
+.gt-o8{--r:14%;--y:72%;--d:5.6s;--dl:-1.6s}
+.gt-p{position:absolute;left:var(--x);top:var(--y);width:var(--z);height:var(--z);border-radius:50%;background:var(--accent);opacity:.7;animation:gt-tw 3.4s ease-in-out infinite alternate;animation-delay:var(--dl,0s)}
+.gt-p.o{background:none;border:2.5px solid var(--accent)}
+.gt-p.d{border-radius:2px;rotate:45deg}
+.gt-card{position:relative;z-index:2;margin:auto;width:min(100%,500px);display:flex;flex-direction:column;gap:14px;text-align:center;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:30px 28px 22px;box-shadow:0 24px 60px -24px rgba(7,32,30,.4)}
+.gt-kick{font:500 .75rem var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text);margin:0}
+.gt-title{display:flex;align-items:center;justify-content:center;gap:12px;font:700 clamp(2rem,7vw,2.8rem)/1.05 var(--f-display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+.gt-title svg{width:.9em;height:.9em;flex:none;color:var(--ink)}
+.gt-h{padding-inline:.08em}
+.gt-h.a{background:linear-gradient(transparent 58%,var(--hl1) 58% 90%,transparent 90%)}
+.gt-h.b{background:linear-gradient(transparent 58%,var(--hl2) 58% 90%,transparent 90%)}
+.gt-sub{margin:0;color:var(--muted)}
+.gt-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-top:4px}
+.gt-form .field{margin:0}
+.gt-go{width:100%;padding:13px 16px;font-size:1rem;display:flex;justify-content:center;gap:8px}
+.gt-go:hover{filter:brightness(1.1)}
+.gt-names{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:500 .72rem var(--f-mono);color:var(--muted);padding-top:4px}
+.gt-names .dot{width:8px;height:8px;margin-right:6px}
+.gt-tick{position:absolute;left:0;right:0;bottom:0;z-index:2;overflow:hidden;border-top:1px solid var(--line);background:var(--surface);padding:9px 0 calc(9px + env(safe-area-inset-bottom,0px))}
+.gt-track{display:flex;align-items:center;width:max-content;white-space:nowrap;font:500 12px var(--f-mono);color:var(--muted);animation:gt-tick 50s linear infinite}
+.gt-track span{margin-right:12px}
+.gt-track i{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:24px;flex:none}
+@media(max-width:900px){
+  .gt-ob{--s:clamp(54px,14vw,96px);--r:auto}
+  .gt-o1{--x:3%;--y:2%}.gt-o2{--x:27%;--y:3%}.gt-o3{--x:52%;--y:2%}.gt-o4{--x:76%;--y:3%}
+  .gt-o5{--x:3%;--y:84%}.gt-o6{--x:27%;--y:85%}.gt-o7{--x:52%;--y:84%}.gt-o8{--x:76%;--y:85%}
+  .gt-card{padding:24px 18px 18px}
+}
+@media(prefers-reduced-motion:reduce){.gt,.gt *{animation:none!important;transition:none!important}}
+/* panduan, kuis, rapor */
+.guide{margin-block:0 24px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.guide>summary{cursor:pointer;padding:12px 16px;font:600 .95rem var(--f-display);list-style-position:inside}
+.info{display:grid;gap:24px;grid-template-columns:repeat(3,minmax(0,1fr));padding:4px 16px 18px}
+@media(max-width:900px){.info{grid-template-columns:minmax(0,1fr)}}
+.info h2{font:500 .75rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.info ol,.info ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.field{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.field label{font-size:.82rem;color:var(--muted)}
+input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+.quiz{margin-top:28px;padding-top:20px;border-top:1px solid var(--line);max-width:760px}
+.quiz h3{font:700 1.3rem var(--f-display);margin:0 0 12px}
+fieldset.q{border:1px solid var(--line);border-radius:6px;padding:10px 14px 12px;margin:0 0 10px;background:var(--surface);min-width:0}
+fieldset.q legend{font-weight:600;padding:0 6px}
+fieldset.q label{display:flex;gap:8px;align-items:flex-start;padding:4px 0;cursor:pointer}
+fieldset.q input{accent-color:var(--accent);margin-top:5px}
+fieldset.q.ok{border-color:var(--accent)}
+fieldset.q.no{border-color:var(--mag)}
+.why{margin:8px 0 0;font-size:.9rem;color:var(--muted)}
+.why b{color:var(--ink)}
+.score{font:500 1rem var(--f-mono);margin:10px 0 0}
+details.key{margin-top:14px}
+details.key summary{cursor:pointer;font-weight:600;color:var(--accent)}
+details.key ol{margin:8px 0 0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.rapor{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);max-width:760px}
+.rapor h2{font:700 1.6rem var(--f-display);margin:0 0 4px}
+.rapor td:nth-child(-n+2),.rapor th:nth-child(-n+2){text-align:left}
+.rapor .nilai{font:500 1.05rem var(--f-mono);margin:12px 0}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem;max-width:80ch}
+</style>
+</head>
+<body>
+
+<div class="gt" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+  <div class="gt-deco" aria-hidden="true">
+    <div class="gt-ring"><svg viewBox="0 0 200 200">
+      <circle class="gt-r1" cx="100" cy="100" r="96"/><circle class="gt-r2" cx="100" cy="100" r="82"/>
+      <circle class="gt-rd" data-c="parabola" cx="196" cy="100" r="3.4"/><circle class="gt-rd" data-c="bandul" cx="167.9" cy="167.9" r="3.4"/>
+      <circle class="gt-rd" data-c="ohm" cx="100" cy="196" r="3.4"/><circle class="gt-rd" data-c="gelombang" cx="32.1" cy="167.9" r="3.4"/>
+      <circle class="gt-rd" data-c="titrasi" cx="4" cy="100" r="3.4"/><circle class="gt-rd" data-c="ph" cx="32.1" cy="32.1" r="3.4"/>
+      <circle class="gt-rd" data-c="gas" cx="100" cy="4" r="3.4"/><circle class="gt-rd" data-c="laju" cx="167.9" cy="32.1" r="3.4"/>
+    </svg></div>
+
+    <i class="gt-p" data-c="gelombang" style="--x:24%;--y:14%;--z:12px;--dl:-.4s"></i>
+    <i class="gt-p o" data-c="parabola" style="--x:31%;--y:84%;--z:16px;--dl:-1.2s"></i>
+    <i class="gt-p" data-c="titrasi" style="--x:68%;--y:9%;--z:9px;--dl:-2s"></i>
+    <i class="gt-p d" data-c="ph" style="--x:76%;--y:86%;--z:11px;--dl:-.9s"></i>
+    <i class="gt-p o" data-c="gas" style="--x:9%;--y:44%;--z:14px;--dl:-1.7s"></i>
+    <i class="gt-p" data-c="ohm" style="--x:91%;--y:46%;--z:10px;--dl:-.2s"></i>
+    <i class="gt-p d" data-c="laju" style="--x:22%;--y:66%;--z:12px;--dl:-2.4s"></i>
+    <i class="gt-p o" data-c="bandul" style="--x:80%;--y:64%;--z:13px;--dl:-1.5s"></i>
+    <i class="gt-p" data-c="parabola" style="--x:42%;--y:5%;--z:8px;--dl:-.7s"></i>
+    <i class="gt-p d" data-c="gelombang" style="--x:58%;--y:91%;--z:10px;--dl:-2.1s"></i>
+
+    <!-- labu Erlenmeyer -->
+    <div class="gt-ob gt-o1" data-c="titrasi"><svg viewBox="0 0 100 100">
+      <path class="gt-fs" d="M43 10V36L16 80A8 8 0 0 0 23 92H77A8 8 0 0 0 84 80L57 36V10Z"/>
+      <path class="gt-fa gt-n" d="M27 62H73L84 80A8 8 0 0 1 77 92H23A8 8 0 0 1 16 80Z"/>
+      <path d="M38 10H62"/>
+      <circle class="gt-fw gt-bub" cx="46" cy="76" r="3.5"/><circle class="gt-fw gt-bub b2" cx="58" cy="78" r="2.6"/>
+    </svg></div>
+    <!-- bandul -->
+    <div class="gt-ob gt-o2" data-c="bandul"><svg viewBox="0 0 100 100">
+      <rect class="gt-fa" x="22" y="4" width="56" height="9" rx="3"/>
+      <g class="gt-swing"><line x1="50" y1="13" x2="50" y2="68"/><circle class="gt-fa" cx="50" cy="78" r="12"/></g>
+    </svg></div>
+    <!-- bola lampu -->
+    <div class="gt-ob gt-o3" data-c="ohm"><svg viewBox="0 0 100 100">
+      <circle class="gt-fa gt-n gt-glow" cx="50" cy="46" r="36"/>
+      <g class="gt-rays"><path d="M50 4V12M27 23L21 17M73 23L79 17M17 46H9M83 46H91"/></g>
+      <path class="gt-fs" d="M36 68A26 26 0 1 1 64 68c-3 3-4 6-4 10H40c0-4-1-7-4-10Z"/>
+      <path class="gt-sm" d="M42 64L46 50L50 58L54 50L58 64"/>
+      <rect class="gt-fw" x="40" y="78" width="20" height="14" rx="3"/><path d="M40 85H60"/>
+    </svg></div>
+    <!-- gerak parabola -->
+    <div class="gt-ob gt-o4" data-c="parabola"><svg viewBox="0 0 100 100">
+      <path d="M6 90H94"/>
+      <path class="gt-dash" d="M14 84Q50 -30 86 84"/>
+      <path class="gt-sm" d="M88 90V66"/><path class="gt-fm" d="M88 66L98 71L88 76Z"/>
+      <circle class="gt-fa" r="7"><animateMotion dur="2.8s" repeatCount="indefinite" path="M14 84Q50 -30 86 84"/></circle>
+    </svg></div>
+
+    <!-- gelas kimia -->
+    <div class="gt-ob gt-o5" data-c="ph"><svg viewBox="0 0 100 100">
+      <path class="gt-fs" d="M24 12V78A8 8 0 0 0 32 86H68A8 8 0 0 0 76 78V12Z"/>
+      <path class="gt-fa gt-n" d="M25 46Q37 40 50 46T75 46V78A7 7 0 0 1 68 85H32A7 7 0 0 1 25 78Z"/>
+      <path d="M20 12H80M24 28H32M24 42H29M24 58H32"/>
+      <circle class="gt-fw gt-bub" cx="42" cy="68" r="3.5"/><circle class="gt-fw gt-bub b2" cx="58" cy="72" r="2.8"/>
+    </svg></div>
+    <!-- osiloskop gelombang -->
+    <div class="gt-ob gt-o6" data-c="gelombang"><svg viewBox="0 0 100 100">
+      <defs><clipPath id="gt-clip"><rect x="14" y="24" width="72" height="52" rx="6"/></clipPath></defs>
+      <rect class="gt-fs" x="8" y="18" width="84" height="64" rx="10"/>
+      <rect class="gt-fw" x="14" y="24" width="72" height="52" rx="6"/>
+      <g clip-path="url(#gt-clip)">
+        <path class="gt-grid" d="M32 24V76M50 24V76M68 24V76M14 50H86"/>
+        <path class="gt-sm gt-sw" d="M-6 50q10 -20 20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0"/>
+      </g>
+      <path d="M32 90H68"/>
+    </svg></div>
+    <!-- molekul air -->
+    <div class="gt-ob gt-o7" data-c="laju"><svg viewBox="0 0 100 100">
+      <g class="gt-spin">
+        <path d="M50 40L22 72M50 40L78 72"/>
+        <circle class="gt-fa" cx="50" cy="40" r="16"/>
+        <circle class="gt-fw" cx="22" cy="72" r="10"/><circle class="gt-fw" cx="78" cy="72" r="10"/>
+      </g>
+    </svg></div>
+    <!-- atom -->
+    <div class="gt-ob gt-o8" data-c="gas"><svg viewBox="0 0 100 100">
+      <ellipse cx="50" cy="50" rx="42" ry="15"/>
+      <ellipse cx="50" cy="50" rx="42" ry="15" transform="rotate(60 50 50)"/>
+      <ellipse cx="50" cy="50" rx="42" ry="15" transform="rotate(120 50 50)"/>
+      <circle class="gt-fa" cx="50" cy="50" r="9"/>
+      <g><circle class="gt-fm" r="5"><animateMotion dur="3s" repeatCount="indefinite" path="M8 50a42 15 0 1 0 84 0a42 15 0 1 0 -84 0"/></circle></g>
+      <g transform="rotate(60 50 50)"><circle class="gt-fm" r="5"><animateMotion dur="3.6s" repeatCount="indefinite" path="M8 50a42 15 0 1 0 84 0a42 15 0 1 0 -84 0"/></circle></g>
+      <g transform="rotate(120 50 50)"><circle class="gt-fm" r="5"><animateMotion dur="4.2s" repeatCount="indefinite" path="M8 50a42 15 0 1 0 84 0a42 15 0 1 0 -84 0"/></circle></g>
+    </svg></div>
+  </div>
+
+  <div class="gt-card">
+    <p class="gt-kick" id="gate-kick">Selamat datang di</p>
+    <div class="gt-title" id="gate-title">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8M13 3v9L5.5 25.5A3 3 0 0 0 8.1 30h15.8a3 3 0 0 0 2.6-4.5L19 12V3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M8.5 22h15l2 3.5A1.5 1.5 0 0 1 24.2 28H7.8a1.5 1.5 0 0 1-1.3-2.5z" fill="#F97316"/></svg>
+      <span><span class="gt-h a">LabSains</span> <span class="gt-h b">Digital</span></span>
+    </div>
+    <p class="gt-sub">Simulasi eksperimen fisika dan kimia berbasis web interaktif untuk madrasah dan sekolah.</p>
+    <form class="gt-form" id="gate-form">
+      <div class="field"><label for="gate-nama">Nama panggilanmu (boleh dikosongkan)</label><input type="text" id="gate-nama" autocomplete="off" maxlength="40" placeholder="Tulis namamu"></div>
+      <button class="btn gt-go" id="gate-go" type="submit"><span id="gate-golabel">Masuk ke Lab</span> <span aria-hidden="true">→</span></button>
+    </form>
+    <div class="gt-names" aria-label="Delapan eksperimen di dalam lab">
+      <span><i class="dot" data-c="parabola"></i>Parabola</span><span><i class="dot" data-c="bandul"></i>Bandul</span><span><i class="dot" data-c="ohm"></i>Ohm</span><span><i class="dot" data-c="gelombang"></i>Gelombang</span>
+      <span><i class="dot" data-c="titrasi"></i>Titrasi</span><span><i class="dot" data-c="ph"></i>pH</span><span><i class="dot" data-c="gas"></i>Gas</span><span><i class="dot" data-c="laju"></i>Laju reaksi</span>
+    </div>
+  </div>
+
+  <div class="gt-tick" aria-hidden="true"><div class="gt-track">
+    <span>R = v₀² sin 2θ / g</span><i data-c="parabola"></i><span>T = 2π√(L/g)</span><i data-c="bandul"></i><span>V = I · R</span><i data-c="ohm"></i><span>v = f · λ</span><i data-c="gelombang"></i>
+    <span>M₁V₁ = M₂V₂</span><i data-c="titrasi"></i><span>pH = −log [H⁺]</span><i data-c="ph"></i><span>PV = nRT</span><i data-c="gas"></i><span>A + B → C</span><i data-c="laju"></i>
+  </div></div>
+</div>
+
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8M13 3v9L5.5 25.5A3 3 0 0 0 8.1 30h15.8a3 3 0 0 0 2.6-4.5L19 12V3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M8.5 22h15l2 3.5A1.5 1.5 0 0 1 24.2 28H7.8a1.5 1.5 0 0 1-1.3-2.5z" fill="#F97316"/></svg>
+      LabSains Digital
+    </div>
+    <div class="tag">Simulasi fisika dan kimia</div>
+  </header>
+  <div class="spectrum" aria-hidden="true"><i data-c="parabola"></i><i data-c="bandul"></i><i data-c="ohm"></i><i data-c="gelombang"></i><i data-c="titrasi"></i><i data-c="ph"></i><i data-c="gas"></i><i data-c="laju"></i></div>
+
+  <section class="intro">
+    <h1><span class="hl a">Ubah variabelnya,</span> <span class="hl b">lihat hasilnya,</span> <span class="hl c">catat temuanmu.</span></h1>
+    <p>Delapan eksperimen interaktif untuk praktikum fisika dan kimia di madrasah atau sekolah. Pilih satu, geser slider, jawab pertanyaan, lalu kerjakan kuisnya. Skormu masuk ke rapor di bagian bawah halaman.</p>
+  </section>
+
+  <details class="guide">
+    <summary>Panduan, keselamatan lab, dan profil siswa</summary>
+    <div class="info">
+      <div>
+        <h2>Cara memakai</h2>
+        <ol>
+          <li>Pilih eksperimen dari daftar di bawah.</li>
+          <li>Geser slider dan amati perubahan grafik serta angka hasilnya.</li>
+          <li>Coba tiga pertanyaan latihan, lalu cocokkan dengan kunci jawaban.</li>
+          <li>Kerjakan kuis di bagian bawah tiap eksperimen. Skor tersimpan di rapor.</li>
+        </ol>
+      </div>
+      <div>
+        <h2>Keselamatan lab</h2>
+        <ul>
+          <li>Simulasi ini aman. Saat praktikum nyata, pakai jas lab, kacamata, dan sarung tangan.</li>
+          <li>Jangan mencium atau mencicipi bahan kimia secara langsung.</li>
+          <li>Asam dan basa pekat ditangani oleh guru.</li>
+          <li>Saat mengencerkan, tuang asam ke dalam air, bukan sebaliknya.</li>
+          <li>Matikan sumber listrik sebelum merakit rangkaian dan pegang alat dengan tangan kering.</li>
+          <li>Buang limbah sesuai arahan guru.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Profil siswa</h2>
+        <div class="field"><label for="pf-nama">Nama</label><input type="text" id="pf-nama" autocomplete="off"></div>
+        <div class="field"><label for="pf-kelas">Kelas</label><input type="text" id="pf-kelas" autocomplete="off"></div>
+        <div class="field"><label for="pf-sch">Madrasah atau sekolah</label><input type="text" id="pf-sch" autocomplete="off"></div>
+        <p class="hint">Tersimpan di peramban ini saja dan tampil di rapor.</p>
+      </div>
+    </div>
+  </details>
+
+  <nav class="picker" id="picker" aria-label="Daftar eksperimen"></nav>
+  <div id="stage"></div>
+
+  <section class="rapor" id="rapor" aria-labelledby="rapor-h">
+    <h2 id="rapor-h">Rapor belajar</h2>
+    <p class="hint" id="rapor-who"></p>
+    <div class="tablewrap"><table><thead><tr><th>Eksperimen</th><th>Kelompok</th><th>Skor kuis</th></tr></thead><tbody id="rapor-tb"></tbody></table></div>
+    <p class="nilai">Nilai akhir: <span id="rapor-nilai">0</span> dari 100</p>
+    <p class="hint" id="rapor-sum"></p>
+    <div class="row"><button class="btn ghost" id="rapor-rs" type="button">Hapus skor dan catatan</button></div>
+  </section>
+
+  <footer>Model disederhanakan: gerak dan gelombang tanpa redaman, titrasi pada 25 °C dengan larutan 0,1 M, gas dianggap ideal, dan laju reaksi memakai model tumbukan sederhana. Simulasi ini membantu mengamati pola dan tidak menggantikan praktikum langsung di laboratorium.</footer>
+</div>
+
+<script>
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const TAU=Math.PI*2;
+const MONO="'IBM Plex Mono',ui-monospace,Menlo,monospace";
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let active=null;
+const cssv=n=>getComputedStyle(active?active.el:document.documentElement).getPropertyValue(n==='--accent'?'--accent-text':n).trim();
+const fmt=(x,d=2)=>Number(x).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});
+const tick=v=>String(+v.toFixed(2)).replace('.',',');
+const sci=x=>{const [m,e]=x.toExponential(1).split('e');return m.replace('.',',')+'×10<sup>'+String(+e).replace('-','−')+'</sup>';};
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const store={
+  get(k,d){try{const v=localStorage.getItem('labsains.'+k);return v?JSON.parse(v):d;}catch(e){return d;}},
+  set(k,v){try{localStorage.setItem('labsains.'+k,JSON.stringify(v));}catch(e){}}
+};
+function niceStep(range,n){const raw=range/n,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p;return(f<1.5?1:f<3.5?2:f<7.5?5:10)*p;}
+function fit(cv){
+  const r=cv.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(160,Math.round(r.width)),h=Math.max(100,Math.round(r.height));
+  if(cv.width!==Math.round(w*d)||cv.height!==Math.round(h*d)){cv.width=Math.round(w*d);cv.height=Math.round(h*d);}
+  const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,w,h);
+  return{c,w,h};
+}
+const ctl=(id,label,min,max,step,val)=>`<div class="ctl"><label for="${id}">${label}</label><output id="${id}-o" for="${id}"></output><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
+const rd=(label,id,unit,wide)=>`<div${wide?' class="wide"':''}><dt>${label}</dt><dd><span id="${id}">–</span>${unit?`<small>${unit}</small>`:''}</dd></div>`;
+function bind(root,id,f,cb){
+  const i=$('#'+id,root),o=$('#'+id+'-o',root);
+  const up=()=>{o.textContent=f(+i.value);};
+  i.addEventListener('input',()=>{up();cb&&cb(+i.value);});
+  up();return i;
+}
+const REG=[];
+function shell(id,kicker,title,lede,stageHTML,panelHTML,formulaHTML,qs){
+  const el=document.createElement('article');
+  el.className='exp';el.id='exp-'+id;el.hidden=true;el.dataset.c=id;
+  el.setAttribute('role','tabpanel');el.setAttribute('aria-labelledby','tab-'+id);
+  el.innerHTML=`<header class="exp-head"><p class="kicker">${kicker}</p><h2 class="title">${title}</h2><p class="lede">${lede}</p></header>
+  <div class="exp-body"><div class="stage">${stageHTML}</div><div class="panel">${panelHTML}</div></div>
+  <div class="notes"><div><h3>Rumus yang dipakai</h3><div class="formula">${formulaHTML}</div></div>
+  <div><h3>Pertanyaan untuk dicoba</h3><ol>${qs.map(q=>`<li>${q}</li>`).join('')}</ol></div></div>`;
+  $('#stage').appendChild(el);
+  return el;
+}
+
+/* ---------- 1. Gerak parabola ---------- */
+(function(){
+  const id='parabola';
+  const el=shell(id,'Fisika · Kinematika','Gerak Parabola',
+    'Atur kecepatan awal, sudut tembak, dan gravitasi. Lintasan dihitung dari rumus gerak parabola tanpa hambatan udara.',
+    `<canvas id="pa-cv" role="img" aria-label="Grafik lintasan gerak parabola"></canvas>
+     <div><p class="sect">Catatan percobaan</p>
+     <div class="tablewrap"><table><thead><tr><th>#</th><th>v₀</th><th>θ</th><th>g</th><th>Jarak</th><th>Tinggi</th><th>Waktu</th></tr></thead><tbody id="pa-tb"></tbody></table></div>
+     <p class="hint">Satuan: v₀ m/s, θ derajat, g m/s², jarak dan tinggi m, waktu s. Baris bertanda * adalah contoh. Maksimum 6 baris, tersimpan di peramban ini.</p></div>`,
+    `<div><p class="sect">Variabel</p><div class="ctls">
+       ${ctl('pa-v','Kecepatan awal (v₀)',5,50,1,25)}
+       ${ctl('pa-a','Sudut tembak (θ)',5,85,1,45)}
+       <div class="ctl sel"><label for="pa-g">Benda langit</label><select id="pa-g">
+         <option value="9.81">Bumi · 9,81 m/s²</option><option value="1.62">Bulan · 1,62 m/s²</option>
+         <option value="3.71">Mars · 3,71 m/s²</option><option value="24.79">Jupiter · 24,79 m/s²</option></select></div>
+     </div></div>
+     <div class="row"><button class="btn" id="pa-fire" type="button">Tembak</button><button class="btn ghost" id="pa-rec" type="button">Catat</button><button class="btn ghost" id="pa-clr" type="button">Hapus catatan</button></div>
+     <div><p class="sect">Hasil perhitungan</p><dl class="reads">
+       ${rd('Jarak maks.','pa-R','m')}${rd('Tinggi maks.','pa-H','m')}${rd('Waktu terbang','pa-T','s')}${rd('Kecepatan mendatar','pa-vx','m/s')}
+     </dl></div>`,
+    `<p>x = v₀ cos θ · t</p><p>y = v₀ sin θ · t − ½ g t²</p><p>T = 2 v₀ sin θ / g</p><p>H = v₀² sin²θ / 2g</p><p>R = v₀² sin 2θ / g</p>`,
+    ['Dengan g tetap di Bumi, sudut berapa yang memberi jarak terjauh? Bandingkan 30°, 45°, dan 60°.',
+     'Sudut 30° dan 60° memberi jarak yang sama. Catat keduanya dan cari penyebabnya dari rumus R.',
+     'Pindahkan ke Bulan dengan v₀ dan θ yang sama. Apa yang berubah pada tinggi dan waktu terbang?']);
+  const st={v:25,a:45,g:9.81,t:0,run:false,last:0,raf:0,ts:1};
+  const rows=store.get('catatan',[{v:25,a:30,g:9.81,ex:true}]);
+  const cv=$('#pa-cv',el);
+  const calc=(o=st)=>{const r=o.a*Math.PI/180,vx=o.v*Math.cos(r),vy=o.v*Math.sin(r);return{vx,vy,T:2*vy/o.g,R:vx*2*vy/o.g,H:vy*vy/(2*o.g)};};
+  function table(){
+    const tb=$('#pa-tb',el);
+    if(!rows.length){tb.innerHTML='<tr><td class="empty" colspan="7">Belum ada catatan.</td></tr>';return;}
+    tb.innerHTML=rows.map((r,i)=>{const k=calc(r);return `<tr><td>${i+1}${r.ex?'*':''}</td><td>${fmt(r.v,0)}</td><td>${fmt(r.a,0)}</td><td>${fmt(r.g,2)}</td><td>${fmt(k.R,1)}</td><td>${fmt(k.H,1)}</td><td>${fmt(k.T,2)}</td></tr>`;}).join('');
+  }
+  function upd(){
+    const k=calc();
+    $('#pa-R',el).textContent=fmt(k.R,1);$('#pa-H',el).textContent=fmt(k.H,1);
+    $('#pa-T',el).textContent=fmt(k.T,2);$('#pa-vx',el).textContent=fmt(k.vx,1);
+  }
+  function draw(){
+    const {c,w,h}=fit(cv),k=calc();
+    const pl=46,pr=14,pt=18,pb=34,W=w-pl-pr,Hh=h-pt-pb;
+    const s=Math.min(W/Math.max(k.R*1.12,5),Hh/Math.max(k.H*1.4,3));
+    const X=x=>pl+x*s,Y=y=>h-pb-y*s;
+    const ink=cssv('--ink'),mu=cssv('--muted'),ln=cssv('--line'),ac=cssv('--accent'),mg=cssv('--mag');
+    c.font='11px '+MONO;c.lineWidth=1;
+    const sy=niceStep(Hh/s,4);c.textAlign='right';
+    for(let y=0;y<=Hh/s+1e-9;y+=sy){c.strokeStyle=ln;c.beginPath();c.moveTo(pl,Y(y));c.lineTo(w-pr,Y(y));c.stroke();c.fillStyle=mu;c.fillText(tick(y),pl-8,Y(y)+4);}
+    const sx=niceStep(W/s,6);c.textAlign='center';
+    for(let x=0;x<=W/s+1e-9;x+=sx){c.strokeStyle=ln;c.beginPath();c.moveTo(X(x),Y(0));c.lineTo(X(x),Y(0)+5);c.stroke();c.fillStyle=mu;c.fillText(tick(x),X(x),Y(0)+18);}
+    c.strokeStyle=ink;c.lineWidth=2;c.beginPath();c.moveTo(pl,Y(0));c.lineTo(w-pr,Y(0));c.stroke();
+    c.fillStyle=mu;c.textAlign='right';c.fillText('jarak (m)',w-pr,h-5);c.textAlign='left';c.fillText('tinggi (m)',4,12);
+    const pos=t=>[k.vx*t,k.vy*t-.5*st.g*t*t];
+    const trace=te=>{c.beginPath();for(let i=0;i<=80;i++){const p=pos(te*i/80);i?c.lineTo(X(p[0]),Y(p[1])):c.moveTo(X(p[0]),Y(p[1]));}c.stroke();};
+    c.setLineDash([5,5]);c.strokeStyle=mu;c.lineWidth=1.5;trace(k.T);c.setLineDash([]);
+    c.strokeStyle=ac;c.lineWidth=3;trace(Math.min(st.t,k.T));
+    c.fillStyle=ink;c.font='12px '+MONO;
+    c.beginPath();c.arc(X(k.R/2),Y(k.H),3.5,0,TAU);c.fill();
+    c.textAlign='center';c.fillText('H = '+fmt(k.H,1)+' m',X(k.R/2),Y(k.H)-10);
+    c.beginPath();c.arc(X(k.R),Y(0),3.5,0,TAU);c.fill();
+    c.textAlign='right';c.fillText('R = '+fmt(k.R,1)+' m',X(k.R)-6,Y(0)-9);
+    c.save();c.translate(X(0),Y(0));c.rotate(-st.a*Math.PI/180);c.fillStyle=ink;c.fillRect(-4,-4,34,8);c.restore();
+    const b=pos(Math.min(st.t,k.T));
+    c.fillStyle=mg;c.beginPath();c.arc(X(b[0]),Y(b[1]),6,0,TAU);c.fill();
+    c.strokeStyle=cssv('--surface');c.lineWidth=2;c.stroke();
+  }
+  function frame(ts){
+    if(!st.run)return;
+    const dt=Math.min(.05,(ts-st.last)/1000);st.last=ts;
+    const k=calc();st.t+=dt*st.ts;
+    if(st.t>=k.T){st.t=k.T;st.run=false;}
+    draw();
+    if(st.run)st.raf=requestAnimationFrame(frame);
+  }
+  function stop(){st.run=false;cancelAnimationFrame(st.raf);}
+  function fire(){
+    stop();const k=calc();
+    if(reduce){st.t=k.T;draw();return;}
+    st.t=0;st.ts=Math.max(1,k.T/4);st.run=true;st.last=performance.now();
+    st.raf=requestAnimationFrame(frame);
+  }
+  function changed(){stop();st.t=calc().T;upd();draw();}
+  bind(el,'pa-v',v=>fmt(v,0)+' m/s',v=>{st.v=v;changed();});
+  bind(el,'pa-a',v=>fmt(v,0)+'°',v=>{st.a=v;changed();});
+  $('#pa-g',el).addEventListener('change',e=>{st.g=+e.target.value;changed();});
+  $('#pa-fire',el).addEventListener('click',fire);
+  $('#pa-rec',el).addEventListener('click',()=>{rows.push({v:st.v,a:st.a,g:st.g});if(rows.length>6)rows.shift();store.set('catatan',rows);table();});
+  $('#pa-clr',el).addEventListener('click',()=>{rows.length=0;store.set('catatan',rows);table();});
+  table();
+  REG.push({id,group:'Fisika',name:'Gerak Parabola',sub:'Kinematika',el,draw,stop,start(){st.t=calc().T;upd();draw();},resetData(){rows.length=0;table();}});
+})();
+
+/* ---------- 2. Bandul sederhana ---------- */
+(function(){
+  const id='bandul';
+  const el=shell(id,'Fisika · Getaran','Bandul Sederhana',
+    'Ayunkan bandul, ukur periodenya, lalu bandingkan dengan nilai dari rumus. Panjang tali, massa, sudut awal, dan gravitasi bisa diubah.',
+    `<canvas id="bn-cv" style="aspect-ratio:16/11" role="img" aria-label="Bandul yang berayun"></canvas>
+     <div><p class="sect">Simpangan sudut terhadap waktu</p><canvas id="bn-ch" style="aspect-ratio:16/5" role="img" aria-label="Grafik simpangan sudut terhadap waktu"></canvas></div>`,
+    `<div><p class="sect">Variabel</p><div class="ctls">
+       ${ctl('bn-l','Panjang tali (L)',.2,3,.05,1)}
+       ${ctl('bn-m','Massa bandul (m)',.1,2,.1,.5)}
+       ${ctl('bn-a','Sudut awal (θ₀)',5,80,1,20)}
+       <div class="ctl sel"><label for="bn-g">Benda langit</label><select id="bn-g">
+         <option value="9.81">Bumi · 9,81 m/s²</option><option value="1.62">Bulan · 1,62 m/s²</option>
+         <option value="3.71">Mars · 3,71 m/s²</option><option value="24.79">Jupiter · 24,79 m/s²</option></select></div>
+     </div><p class="hint">Massa tidak muncul di rumus periode. Coba ubah dan lihat sendiri.</p></div>
+     <div class="row"><button class="btn" id="bn-pl" type="button">Jeda</button><button class="btn ghost" id="bn-rs" type="button">Ulangi dari awal</button></div>
+     <div><p class="sect">Hasil pengukuran</p><dl class="reads">
+       ${rd('Periode teori','bn-T0','s')}${rd('Periode terukur','bn-Tm','s')}${rd('Frekuensi','bn-f','Hz')}${rd('Selisih','bn-df','%')}${rd('Ayunan penuh','bn-n','kali')}${rd('Waktu berjalan','bn-t','s')}
+     </dl></div>`,
+    `<p>T = 2π √(L / g)</p><p>f = 1 / T</p><p>θ″ = −(g / L) sin θ</p><p class="hint" style="font-family:var(--f-body)">Rumus T berlaku untuk simpangan kecil. Simulasi memakai persamaan gerak penuh, jadi sudut besar memberi periode lebih panjang.</p>`,
+    ['Ubah massa dari 0,1 kg ke 2 kg. Apakah periode terukur berubah?',
+     'Panjang tali dijadikan 4 kali lipat, misalnya 0,5 m ke 2 m. Periodenya menjadi berapa kali?',
+     'Naikkan sudut awal ke 80°. Mengapa periode terukur lebih besar dari periode teori?']);
+  const st={L:1,m:.5,a0:20,g:9.81,th:0,w:0,t:0,run:!reduce,last:0,raf:0,acc:0,smp:[],lastS:0,lastC:null,Tm:null,n:0};
+  const cv=$('#bn-cv',el),ch=$('#bn-ch',el);
+  function reset(){
+    st.th=st.a0*Math.PI/180;st.w=0;st.t=0;st.acc=0;st.smp=[{t:0,th:st.th}];st.lastS=0;st.lastC=null;st.Tm=null;st.n=0;
+  }
+  function step(h){
+    const A=x=>-(st.g/st.L)*Math.sin(x);
+    const a=A(st.th),p=st.th;
+    st.th+=st.w*h+.5*a*h*h;
+    st.w+=.5*(a+A(st.th))*h;st.t+=h;
+    if(p>0&&st.th<=0){
+      const tc=st.t-h+h*p/(p-st.th);
+      if(st.lastC!==null){st.Tm=tc-st.lastC;st.n++;}
+      st.lastC=tc;
+    }
+    if(st.t-st.lastS>=1/60){st.smp.push({t:st.t,th:st.th});st.lastS=st.t;}
+  }
+  function upd(){
+    const T0=2*Math.PI*Math.sqrt(st.L/st.g);
+    $('#bn-T0',el).textContent=fmt(T0,3);$('#bn-f',el).textContent=fmt(1/T0,3);
+    $('#bn-Tm',el).textContent=st.Tm?fmt(st.Tm,3):'–';
+    $('#bn-df',el).textContent=st.Tm?fmt((st.Tm-T0)/T0*100,1):'–';
+    $('#bn-n',el).textContent=st.n;$('#bn-t',el).textContent=fmt(st.t,1);
+  }
+  function draw(){
+    const ink=cssv('--ink'),mu=cssv('--muted'),ln=cssv('--line'),ac=cssv('--accent'),sf=cssv('--surface');
+    {
+      const {c,w,h}=fit(cv);
+      const px=w/2,py=30,Lp=st.L/3*(h-py-44);
+      const bx=px+Lp*Math.sin(st.th),by=py+Lp*Math.cos(st.th),r=8+st.m*6,a0=st.a0*Math.PI/180;
+      c.fillStyle=ink;c.fillRect(px-56,py-10,112,6);
+      c.setLineDash([4,5]);c.strokeStyle=mu;c.lineWidth=1.2;
+      c.beginPath();c.moveTo(px,py);c.lineTo(px,py+Lp);c.stroke();
+      c.beginPath();c.arc(px,py,Lp,Math.PI/2-a0,Math.PI/2+a0);c.stroke();c.setLineDash([]);
+      c.strokeStyle=ink;c.lineWidth=2;c.beginPath();c.moveTo(px,py);c.lineTo(bx,by);c.stroke();
+      c.fillStyle=ac;c.beginPath();c.arc(bx,by,r,0,TAU);c.fill();c.strokeStyle=ink;c.lineWidth=2;c.stroke();
+      c.fillStyle=ink;c.beginPath();c.arc(px,py,3.5,0,TAU);c.fill();
+      c.font='12px '+MONO;c.textAlign='left';c.fillStyle=mu;
+      c.fillText('θ = '+fmt(st.th*180/Math.PI,1)+'°',12,h-30);
+      c.fillText('L = '+fmt(st.L,2)+' m',12,h-12);
+      c.textAlign='right';c.fillText('m = '+fmt(st.m,1)+' kg',w-12,h-12);
+    }
+    {
+      const {c,w,h}=fit(ch);
+      const pl=44,pr=10,pt=10,pb=24,W=w-pl-pr,H=h-pt-pb,A=Math.max(st.a0,5),tw=8;
+      const t0=Math.max(0,st.t-tw);
+      const X=t=>pl+(t-t0)/tw*W,Y=a=>pt+H/2-a/A*(H/2);
+      c.font='11px '+MONO;c.lineWidth=1;
+      c.textAlign='right';
+      [[A,'+'+tick(A)],[0,'0'],[-A,'−'+tick(A)]].forEach(([a,l])=>{
+        c.strokeStyle=a===0?mu:ln;c.beginPath();c.moveTo(pl,Y(a));c.lineTo(w-pr,Y(a));c.stroke();
+        c.fillStyle=mu;c.fillText(l+'°',pl-6,Y(a)+4);
+      });
+      c.textAlign='center';
+      for(let t=Math.ceil(t0/2)*2;t<=t0+tw+1e-9;t+=2){c.strokeStyle=ln;c.beginPath();c.moveTo(X(t),pt);c.lineTo(X(t),pt+H);c.stroke();c.fillStyle=mu;c.fillText(tick(t)+' s',X(t),h-8);}
+      c.strokeStyle=ac;c.lineWidth=2;c.beginPath();
+      let first=true;
+      st.smp.forEach(p=>{if(p.t<t0)return;const y=Y(p.th*180/Math.PI);first?c.moveTo(X(p.t),y):c.lineTo(X(p.t),y);first=false;});
+      c.stroke();
+    }
+  }
+  function frame(ts){
+    if(!st.run)return;
+    const dt=Math.min(.05,(ts-st.last)/1000);st.last=ts;st.acc+=dt;
+    const h=1/240;while(st.acc>=h){step(h);st.acc-=h;}
+    while(st.smp.length>2&&st.smp[0].t<st.t-8.5)st.smp.shift();
+    draw();upd();st.raf=requestAnimationFrame(frame);
+  }
+  function stop(){st.run=false;cancelAnimationFrame(st.raf);}
+  function play(){
+    stop();st.run=true;st.last=performance.now();st.raf=requestAnimationFrame(frame);
+    $('#bn-pl',el).textContent='Jeda';
+  }
+  function pause(){stop();$('#bn-pl',el).textContent='Lanjutkan';}
+  function restart(){reset();upd();draw();}
+  bind(el,'bn-l',v=>fmt(v,2)+' m',v=>{st.L=v;restart();});
+  bind(el,'bn-m',v=>fmt(v,1)+' kg',v=>{st.m=v;draw();});
+  bind(el,'bn-a',v=>fmt(v,0)+'°',v=>{st.a0=v;restart();});
+  $('#bn-g',el).addEventListener('change',e=>{st.g=+e.target.value;restart();});
+  $('#bn-pl',el).addEventListener('click',()=>st.run?pause():play());
+  $('#bn-rs',el).addEventListener('click',restart);
+  reset();
+  REG.push({id,group:'Fisika',name:'Bandul Sederhana',sub:'Getaran',el,draw,stop:()=>{stop();},start(){restart();if(reduce){pause();}else{play();}}});
+})();
+
+/* ---------- 3. Hukum Ohm ---------- */
+(function(){
+  const id='ohm';
+  const st={mode:'seri',V:12,R1:20,R2:30};
+  const el=shell(id,'Fisika · Listrik arus searah','Hukum Ohm dan Rangkaian',
+    'Susun dua hambatan secara seri atau paralel, atur tegangan sumber, lalu amati arus dan tegangan di tiap komponen. Titik-titik bergerak lebih cepat saat arusnya besar.',
+    `<div class="diagram" id="oh-d" role="img" aria-label="Diagram rangkaian listrik dengan dua hambatan"></div>`,
+    `<div><p class="sect">Jenis rangkaian</p><div class="seg" role="group" aria-label="Jenis rangkaian">
+       <button type="button" id="oh-seri" aria-pressed="true">Seri</button><button type="button" id="oh-par" aria-pressed="false">Paralel</button></div></div>
+     <div><p class="sect">Variabel</p><div class="ctls">
+       ${ctl('oh-v','Tegangan sumber (V)',1,24,.5,12)}${ctl('oh-r1','Hambatan R₁',5,100,1,20)}${ctl('oh-r2','Hambatan R₂',5,100,1,30)}
+     </div></div>
+     <div><p class="sect">Hasil perhitungan</p><dl class="reads">
+       ${rd('Hambatan total','oh-rt','Ω')}${rd('Arus total','oh-it','A')}${rd('Daya total','oh-p','W')}${rd('Energi per menit','oh-e','J')}
+       ${rd('Tegangan R₁','oh-v1','V')}${rd('Tegangan R₂','oh-v2','V')}${rd('Arus R₁','oh-i1','A')}${rd('Arus R₂','oh-i2','A')}
+     </dl></div>`,
+    `<p>V = I × R</p><p>Seri: R = R₁ + R₂, arus sama</p><p>Paralel: 1/R = 1/R₁ + 1/R₂, tegangan sama</p><p>P = V × I</p><p>E = P × t</p>`,
+    ['Pada rangkaian seri, perbesar R₂. Apa yang terjadi pada arus total dan pada tegangan R₁?',
+     'Pada rangkaian paralel, bandingkan hambatan total dengan R terkecil. Mengapa selalu lebih kecil?',
+     'Hitung sendiri V × I dan cocokkan dengan daya total. Lalu kalikan 60 untuk energi per menit.']);
+  const d=$('#oh-d',el);
+  function calc(){
+    const {V,R1,R2}=st;
+    if(st.mode==='seri'){const Rt=R1+R2,I=V/Rt;return{Rt,I,I1:I,I2:I,V1:I*R1,V2:I*R2};}
+    const Rt=R1*R2/(R1+R2);return{Rt,I:V/Rt,I1:V/R1,I2:V/R2,V1:V,V2:V};
+  }
+  const dur=I=>(12/Math.min(220,24+45*I)).toFixed(3)+'s';
+  const box=(x,y,w,h,l)=>`<rect class="res" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/><text class="rlab" x="${x+w/2}" y="${y+h/2+4}" text-anchor="middle">${l}</text>`;
+  const fl=(p,I)=>`<path class="flow" d="${p}" style="animation-duration:${dur(I)}"/>`;
+  function render(){
+    const k=calc();let s='<svg viewBox="0 0 480 280" xmlns="http://www.w3.org/2000/svg">';
+    const bat=`<line class="plate" x1="54" y1="135" x2="86" y2="135"/><line class="plate" x1="62" y1="165" x2="78" y2="165"/>
+      <text class="lbl" x="92" y="131">+</text><text class="lbl" x="92" y="172">−</text>
+      <text class="lbl" x="48" y="154" text-anchor="end">${fmt(st.V,1)} V</text>`;
+    if(st.mode==='seri'){
+      const p='M70 135 V60 H430 V240 H70 V165';
+      s+=`<path class="wire" d="${p}"/>${fl(p,k.I)}${bat}${box(160,46,60,28,'R₁')}${box(300,46,60,28,'R₂')}
+        <text class="dim" x="190" y="94" text-anchor="middle">${fmt(st.R1,0)} Ω</text><text class="dim" x="190" y="110" text-anchor="middle">V₁ = ${fmt(k.V1,2)} V</text>
+        <text class="dim" x="330" y="94" text-anchor="middle">${fmt(st.R2,0)} Ω</text><text class="dim" x="330" y="110" text-anchor="middle">V₂ = ${fmt(k.V2,2)} V</text>
+        <text class="lbl" x="250" y="222" text-anchor="middle">I = ${fmt(k.I,2)} A di semua titik</text>`;
+    }else{
+      s+=`<path class="wire" d="M70 135 V60 H350"/><path class="wire" d="M350 240 H70 V165"/><path class="wire" d="M220 60 V240"/><path class="wire" d="M350 60 V240"/>
+        ${fl('M70 135 V60 H220',k.I)}${fl('M220 60 V240',k.I1)}${fl('M220 60 H350',k.I2)}${fl('M350 60 V240',k.I2)}${fl('M350 240 H220',k.I2)}${fl('M220 240 H70 V165',k.I)}
+        ${bat}${box(206,120,28,60,'R₁')}${box(336,120,28,60,'R₂')}
+        <text class="dim" x="242" y="146">${fmt(st.R1,0)} Ω</text><text class="dim" x="242" y="164">I₁ = ${fmt(k.I1,2)} A</text>
+        <text class="dim" x="372" y="146">${fmt(st.R2,0)} Ω</text><text class="dim" x="372" y="164">I₂ = ${fmt(k.I2,2)} A</text>
+        <text class="lbl" x="120" y="48" text-anchor="middle">I = ${fmt(k.I,2)} A</text>
+        <text class="lbl" x="285" y="266" text-anchor="middle">V₁ = V₂ = ${fmt(st.V,1)} V</text>`;
+    }
+    d.innerHTML=s+'</svg>';
+    $('#oh-rt',el).textContent=fmt(k.Rt,2);$('#oh-it',el).textContent=fmt(k.I,3);
+    const P=st.V*k.I;$('#oh-p',el).textContent=fmt(P,2);$('#oh-e',el).textContent=fmt(P*60,0);
+    $('#oh-v1',el).textContent=fmt(k.V1,2);$('#oh-v2',el).textContent=fmt(k.V2,2);
+    $('#oh-i1',el).textContent=fmt(k.I1,3);$('#oh-i2',el).textContent=fmt(k.I2,3);
+  }
+  function mode(m){
+    st.mode=m;$('#oh-seri',el).setAttribute('aria-pressed',m==='seri');$('#oh-par',el).setAttribute('aria-pressed',m==='paralel');render();
+  }
+  bind(el,'oh-v',v=>fmt(v,1)+' V',v=>{st.V=v;render();});
+  bind(el,'oh-r1',v=>fmt(v,0)+' Ω',v=>{st.R1=v;render();});
+  bind(el,'oh-r2',v=>fmt(v,0)+' Ω',v=>{st.R2=v;render();});
+  $('#oh-seri',el).addEventListener('click',()=>mode('seri'));
+  $('#oh-par',el).addEventListener('click',()=>mode('paralel'));
+  REG.push({id,group:'Fisika',name:'Hukum Ohm dan Rangkaian Listrik',sub:'Listrik arus searah',el,draw:render,stop(){},start:render});
+})();
+
+/* ---------- 4. Titrasi asam-basa ---------- */
+(function(){
+  const id='titrasi';
+  const IND={
+    pp:{n:'Fenolftalein',lo:8.2,hi:10,a:[200,225,232,.28],b:[226,40,110,.85],ta:'tak berwarna',tb:'merah muda'},
+    mo:{n:'Metil jingga',lo:3.1,hi:4.4,a:[224,49,49,.85],b:[242,194,0,.85],ta:'merah',tb:'kuning'},
+    btb:{n:'Bromtimol biru',lo:6.0,hi:7.6,a:[232,197,0,.85],b:[37,99,235,.85],ta:'kuning',tb:'biru'}
+  };
+  const st={type:'strong',ind:'pp',v:20};
+  const el=shell(id,'Kimia · Titrasi','Titrasi Asam-Basa',
+    'Teteskan NaOH 0,1 M dari buret ke 25 mL asam 0,1 M. Amati perubahan pH pada kurva titrasi dan warna indikator di labu.',
+    `<div class="titr">
+       <div class="apparatus"><svg viewBox="0 0 150 300" role="img" aria-label="Buret berisi NaOH di atas labu erlenmeyer">
+         <defs><clipPath id="ti-clip"><path d="M63 196 H87 V222 L126 272 Q130 280 120 282 H30 Q20 280 24 272 L63 222 Z"/></clipPath></defs>
+         <rect id="ti-liq" x="68" y="20" width="14" height="130" fill="#6FA3E8" fill-opacity=".5"/>
+         <rect class="ap-line" x="66" y="14" width="18" height="136" rx="2"/>
+         <g id="ti-ticks"></g>
+         <rect x="58" y="150" width="34" height="7" rx="2" fill="var(--ink)"/>
+         <path class="ap-line" d="M72 157 V174 L75 182 L78 174 V157"/>
+         <g clip-path="url(#ti-clip)"><rect id="ti-fl" x="0" y="244" width="150" height="46" fill="rgba(0,0,0,0)"/></g>
+         <path class="ap-line" d="M63 196 H87 V222 L126 272 Q130 280 120 282 H30 Q20 280 24 272 L63 222 Z"/>
+       </svg></div>
+       <div class="curve"><canvas id="ti-cv" style="aspect-ratio:4/3" role="img" aria-label="Kurva titrasi pH terhadap volume NaOH"></canvas></div>
+     </div>`,
+    `<div><p class="sect">Pilihan percobaan</p><div class="ctls">
+       <div class="ctl sel"><label for="ti-type">Larutan asam (25 mL, 0,1 M)</label><select id="ti-type"><option value="strong">HCl, asam kuat</option><option value="weak">CH₃COOH, asam lemah</option></select></div>
+       <div class="ctl sel"><label for="ti-ind">Indikator</label><select id="ti-ind"><option value="pp">Fenolftalein (8,2 – 10,0)</option><option value="mo">Metil jingga (3,1 – 4,4)</option><option value="btb">Bromtimol biru (6,0 – 7,6)</option></select></div>
+       ${ctl('ti-v','Volume NaOH yang ditambahkan',0,50,.1,20)}
+     </div></div>
+     <div class="row"><button class="btn" id="ti-p1" type="button">+1 mL</button><button class="btn" id="ti-p01" type="button">+0,1 mL</button><button class="btn ghost" id="ti-rs" type="button">Kosongkan</button></div>
+     <div><p class="sect">Hasil pengamatan</p><dl class="reads">
+       ${rd('pH larutan','ti-ph','')}${rd('Warna indikator','ti-col','').replace('<dd>','<dd class="txt">')}
+       <div class="wide"><dt>Status</dt><dd class="txt" id="ti-st">–</dd></div>
+     </dl><p class="hint">Titik ekuivalen terjadi di 25,0 mL karena mol NaOH sama dengan mol asam.</p></div>`,
+    `<p>n asam = n basa (titik ekuivalen)</p><p>M₁ V₁ = M₂ V₂ (valensi 1)</p><p>pH = −log [H⁺]</p><p>pH = 14 + log [OH⁻]</p><p class="hint" style="font-family:var(--f-body)">Nilai pH dihitung dari kesetimbangan muatan, termasuk Ka = 1,8×10⁻⁵ untuk asam asetat.</p>`,
+    ['Pakai HCl dan metil jingga. Apakah warna berubah tepat di 25 mL? Ganti ke asam lemah dan bandingkan.',
+     'Mengapa pH titik ekuivalen asam lemah lebih besar dari 7, sedangkan asam kuat tepat 7?',
+     'Dekati 25 mL dengan tambahan 0,1 mL. Pada rentang volume mana pH naik paling tajam?']);
+  function phSolve(type,vb){
+    const V=25+vb,Ct=2.5/V,Na=.1*vb/V,Ka=1.8e-5,Kw=1e-14;
+    const g=H=>Na+H-Kw/H-(type==='strong'?Ct:Ct*Ka/(Ka+H));
+    let lo=-14,hi=0;
+    for(let i=0;i<60;i++){const m=(lo+hi)/2;if(g(Math.pow(10,m))>0)hi=m;else lo=m;}
+    return-(lo+hi)/2;
+  }
+  let curve=[];
+  function build(){curve=[];for(let v=0;v<=50.0001;v+=.25)curve.push([v,phSolve(st.type,v)]);}
+  const mix=(i,ph)=>{const f=clamp((ph-i.lo)/(i.hi-i.lo),0,1);const c=i.a.map((x,j)=>x+(i.b[j]-x)*f);return{css:`rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${c[3].toFixed(2)})`,f};};
+  const cv=$('#ti-cv',el);
+  (function ticks(){let s='';for(let v=0;v<=50;v+=10){const y=20+v/50*130;s+=`<line x1="66" y1="${y}" x2="74" y2="${y}" stroke="var(--ink)" stroke-width="1.5"/><text class="ap-txt" x="60" y="${y+3}" text-anchor="end">${v}</text>`;}$('#ti-ticks',el).innerHTML=s;})();
+  function drawCurve(){
+    const {c,w,h}=fit(cv);const ph=phSolve(st.type,st.v),I=IND[st.ind];
+    const pl=34,pr=10,pt=24,pb=34,W=w-pl-pr,H=h-pt-pb,X=v=>pl+v/50*W,Y=p=>pt+(1-p/14)*H;
+    const ink=cssv('--ink'),mu=cssv('--muted'),ln=cssv('--line'),ac=cssv('--accent'),mg=cssv('--mag');
+    c.font='11px '+MONO;c.lineWidth=1;
+    c.globalAlpha=.16;c.fillStyle=ac;c.fillRect(pl,Y(I.hi),W,Y(I.lo)-Y(I.hi));c.globalAlpha=1;
+    c.fillStyle=ac;c.textAlign='left';c.fillText(I.n,pl+6,Y(I.hi)-5);
+    c.textAlign='right';
+    for(let p=0;p<=14;p+=2){c.strokeStyle=ln;c.beginPath();c.moveTo(pl,Y(p));c.lineTo(w-pr,Y(p));c.stroke();c.fillStyle=mu;c.fillText(p,pl-6,Y(p)+4);}
+    c.textAlign='center';
+    for(let v=0;v<=50;v+=10){c.strokeStyle=ln;c.beginPath();c.moveTo(X(v),Y(0));c.lineTo(X(v),Y(0)+5);c.stroke();c.fillStyle=mu;c.fillText(v,X(v),Y(0)+18);}
+    c.strokeStyle=ink;c.lineWidth=1.5;c.beginPath();c.moveTo(pl,pt);c.lineTo(pl,Y(0));c.lineTo(w-pr,Y(0));c.stroke();
+    c.setLineDash([4,4]);c.strokeStyle=mu;c.beginPath();c.moveTo(X(25),pt);c.lineTo(X(25),Y(0));c.stroke();c.setLineDash([]);
+    c.fillStyle=mu;c.textAlign='left';c.fillText('25 mL',X(25)+5,Y(0)-6);
+    c.strokeStyle=mu;c.globalAlpha=.55;c.lineWidth=2;c.beginPath();curve.forEach((p,i)=>i?c.lineTo(X(p[0]),Y(p[1])):c.moveTo(X(p[0]),Y(p[1])));c.stroke();c.globalAlpha=1;
+    c.strokeStyle=ac;c.lineWidth=3;c.beginPath();
+    let first=true;curve.forEach(p=>{if(p[0]<=st.v){first?c.moveTo(X(p[0]),Y(p[1])):c.lineTo(X(p[0]),Y(p[1]));first=false;}});
+    c.lineTo(X(st.v),Y(ph));c.stroke();
+    c.fillStyle=mg;c.beginPath();c.arc(X(st.v),Y(ph),5.5,0,TAU);c.fill();c.strokeStyle=cssv('--surface');c.lineWidth=2;c.stroke();
+    c.fillStyle=mu;c.textAlign='right';c.fillText('V NaOH (mL)',w-pr,h-5);c.textAlign='left';c.fillText('pH',4,12);
+  }
+  function upd(){
+    const ph=phSolve(st.type,st.v),I=IND[st.ind],m=mix(I,ph);
+    const y=20+st.v/50*130,liq=$('#ti-liq',el);liq.setAttribute('y',y);liq.setAttribute('height',150-y);
+    $('#ti-fl',el).setAttribute('fill',m.css);
+    $('#ti-ph',el).textContent=fmt(ph,2);
+    $('#ti-col',el).textContent=m.f<.15?I.ta:m.f>.85?I.tb:'peralihan, '+I.ta+' ke '+I.tb;
+    const dv=st.v-25;
+    $('#ti-st',el).textContent=Math.abs(dv)<.05?'Titik ekuivalen: mol NaOH sama dengan mol asam.':dv<0?`Belum sampai titik ekuivalen, kurang ${fmt(-dv,1)} mL.`:`Melewati titik ekuivalen, lebih ${fmt(dv,1)} mL.`;
+    drawCurve();
+  }
+  const sl=bind(el,'ti-v',v=>fmt(v,1)+' mL',v=>{st.v=v;upd();});
+  const nudge=d=>{sl.value=Math.min(50,+sl.value+d).toFixed(1);sl.dispatchEvent(new Event('input'));};
+  $('#ti-p1',el).addEventListener('click',()=>nudge(1));
+  $('#ti-p01',el).addEventListener('click',()=>nudge(.1));
+  $('#ti-rs',el).addEventListener('click',()=>{sl.value=0;sl.dispatchEvent(new Event('input'));});
+  $('#ti-type',el).addEventListener('change',e=>{st.type=e.target.value;build();upd();});
+  $('#ti-ind',el).addEventListener('change',e=>{st.ind=e.target.value;upd();});
+  build();
+  REG.push({id,group:'Kimia',name:'Titrasi Asam-Basa',sub:'Kurva dan indikator',el,draw:upd,stop(){},start:upd});
+})();
+
+/* ---------- 5. Skala pH ---------- */
+(function(){
+  const id='ph';
+  const STOPS=['#E5252A','#EA3A27','#EE5A24','#F28A1E','#F6B516','#F1D91A','#B6D230','#44A94F','#1F9C8E','#2A82C7','#3A5BC9','#5A40B4','#7A2FA0','#8B2B93','#6F2080'];
+  const SAMPLES=[['Asam lambung',1.5],['Jus lemon',2.0],['Cuka dapur',2.9],['Kopi hitam',5.0],['Air murni',7.0],['Darah',7.4],['Larutan soda kue',8.3],['Sabun',10.0],['Amonia rumah tangga',11.5],['Pemutih',12.5]];
+  const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const col=p=>{const i=Math.min(13,Math.floor(p)),f=p-i,a=hex(STOPS[i]),b=hex(STOPS[i+1]);return'rgb('+a.map((v,j)=>Math.round(v+(b[j]-v)*f)).join(',')+')';};
+  const st={ph:7};
+  const el=shell(id,'Kimia · Asam dan basa','Skala pH dan Indikator Universal',
+    'Geser nilai pH atau pilih bahan sehari-hari. Warna indikator universal, konsentrasi H⁺, dan sifat larutan ikut berubah.',
+    `<div class="phtop">
+       <svg class="beaker" viewBox="0 0 200 200" role="img" aria-label="Gelas kimia berisi larutan dengan indikator universal">
+         <path id="ph-liq" d="M42 70 H158 V170 Q158 180 148 180 H52 Q42 180 42 170 Z" fill="#44A94F"/>
+         <path d="M40 20 V170 Q40 182 52 182 H148 Q160 182 160 170 V20" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+         <g stroke="var(--ink)" stroke-width="2"><line x1="40" y1="60" x2="54" y2="60"/><line x1="40" y1="100" x2="50" y2="100"/><line x1="40" y1="140" x2="54" y2="140"/></g>
+       </svg>
+       <div class="phbig"><p class="sect">pH larutan</p><p class="num" id="ph-num">7,0</p><p class="kind" id="ph-kind">Netral</p></div>
+     </div>
+     <div><div class="phbar" id="ph-bar"><i id="ph-ptr"></i></div>
+       <div class="phticks">${STOPS.map((_,i)=>`<span style="left:${(i/14*100).toFixed(3)}%">${i}</span>`).join('')}</div>
+       <div class="phends"><span>Asam</span><span>Netral</span><span>Basa</span></div></div>`,
+    `<div><p class="sect">Variabel</p><div class="ctls">${ctl('ph-s','Nilai pH',0,14,.1,7)}</div></div>
+     <div><p class="sect">Bahan sehari-hari</p><div class="chips" id="ph-chips"></div>
+       <p class="hint">Nilai pH bahan adalah perkiraan. Angka sebenarnya bergantung pada merek dan kondisinya.</p></div>
+     <div><p class="sect">Hasil perhitungan</p><dl class="reads">
+       ${rd('pOH','ph-poh','')}${rd('Sifat','ph-sf','').replace('<dd>','<dd class="txt">')}
+       <div class="wide"><dt>[H⁺]</dt><dd><span id="ph-h">–</span><small>mol/L</small></dd></div>
+       <div class="wide"><dt>[OH⁻]</dt><dd><span id="ph-oh">–</span><small>mol/L</small></dd></div>
+       <div class="wide"><dt>[H⁺] dibanding air murni</dt><dd><span id="ph-r">–</span><small>kali</small></dd></div>
+     </dl></div>`,
+    `<p>pH = −log [H⁺]</p><p>pOH = −log [OH⁻]</p><p>pH + pOH = 14 (25 °C)</p><p>[H⁺] × [OH⁻] = 10⁻¹⁴</p>`,
+    ['Turunkan pH dari 7 ke 4. Berapa kali [H⁺] menjadi lebih besar?',
+     'Bandingkan cuka dan jus lemon. Mana yang lebih asam, dan berapa kali bedanya?',
+     'Cari bahan dengan [OH⁻] paling besar. Apa warna indikator universalnya?']);
+  $('#ph-bar',el).style.background='linear-gradient(90deg,'+STOPS.map((c,i)=>c+' '+(i/14*100).toFixed(2)+'%').join(',')+')';
+  $('#ph-chips',el).innerHTML=SAMPLES.map(([n,p],i)=>`<button type="button" class="chip" data-i="${i}" aria-pressed="false"><i style="background:${col(p)}"></i>${n}<em>${fmt(p,1)}</em></button>`).join('');
+  const sl=bind(el,'ph-s',v=>fmt(v,1),v=>{st.ph=v;upd();});
+  function upd(){
+    const p=st.ph,H=Math.pow(10,-p),OH=Math.pow(10,p-14);
+    $('#ph-liq',el).setAttribute('fill',col(p));
+    $('#ph-num',el).textContent=fmt(p,1);
+    const kind=p<3?'Sangat asam':p<6.75?'Asam':p<=7.25?'Netral':p<=11?'Basa':'Sangat basa';
+    $('#ph-kind',el).textContent=kind;$('#ph-sf',el).textContent=kind;
+    $('#ph-ptr',el).style.left=(p/14*100)+'%';
+    $('#ph-poh',el).textContent=fmt(14-p,1);
+    $('#ph-h',el).innerHTML=sci(H);$('#ph-oh',el).innerHTML=sci(OH);$('#ph-r',el).innerHTML=sci(H/1e-7);
+    el.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',Math.abs(SAMPLES[+b.dataset.i][1]-p)<.05));
+  }
+  $('#ph-chips',el).addEventListener('click',e=>{
+    const b=e.target.closest('.chip');if(!b)return;
+    sl.value=SAMPLES[+b.dataset.i][1];sl.dispatchEvent(new Event('input'));
+  });
+  REG.push({id,group:'Kimia',name:'Skala pH dan Indikator Universal',sub:'Asam dan basa',el,draw:upd,stop(){},start:upd});
+})();
+
+/* ---------- 6. Hukum gas ---------- */
+(function(){
+  const id='gas';
+  const N=42,n=.1,R=8.314;
+  const st={V:2.5,T:300,run:!reduce,last:0,raf:0,hits:0,hitT:0,rate:0,flash:0};
+  const el=shell(id,'Kimia · Gas ideal','Hukum Boyle dan Gay-Lussac',
+    'Gas dalam silinder dengan piston. Ubah volume dan suhu, lalu amati tekanan, gerak partikel, dan titik pada kurva P–V.',
+    `<canvas id="gs-cv" style="aspect-ratio:16/9" role="img" aria-label="Silinder gas dengan piston dan partikel bergerak"></canvas>
+     <div><p class="sect">Kurva tekanan terhadap volume</p><canvas id="gs-pv" style="aspect-ratio:16/7" role="img" aria-label="Kurva P terhadap V pada suhu tetap"></canvas></div>`,
+    `<div><p class="sect">Variabel</p><div class="ctls">${ctl('gs-v','Volume (V)',.5,5,.1,2.5)}${ctl('gs-t','Suhu (T)',200,500,10,300)}</div>
+       <p class="hint">Jumlah gas dibuat tetap, n = 0,10 mol.</p></div>
+     <div class="row"><button class="btn" id="gs-pl" type="button">Jeda</button></div>
+     <div><p class="sect">Hasil perhitungan</p><dl class="reads">
+       ${rd('Tekanan','gs-p','kPa')}${rd('Tekanan','gs-atm','atm')}${rd('P × V','gs-pvv','kPa·L')}${rd('Suhu','gs-c','°C')}
+       <div class="wide"><dt>Tumbukan ke piston</dt><dd><span id="gs-hit">–</span><small>kali per detik</small></dd></div>
+     </dl></div>`,
+    `<p>P V = n R T</p><p>Boyle (T tetap): P₁V₁ = P₂V₂</p><p>Gay-Lussac (V tetap): P₁/T₁ = P₂/T₂</p><p>R = 8,314 L·kPa/(mol·K)</p>`,
+    ['Tahan suhu 300 K lalu kecilkan volume menjadi setengahnya. Berapa perubahan tekanan?',
+     'Tahan volume, naikkan suhu dari 300 K ke 450 K. Bandingkan perbandingan tekanan dengan perbandingan suhu.',
+     'Amati tumbukan ke piston saat volume kecil dan saat volume besar. Hubungkan dengan tekanan.']);
+  const cv=$('#gs-cv',el),pv=$('#gs-pv',el);
+  const P=[];for(let i=0;i<N;i++){const a=Math.random()*TAU,s=.5+Math.random();P.push({x:Math.random(),y:Math.random(),ux:Math.cos(a)*s,uy:Math.sin(a)*s});}
+  const geo={Wc:300,Hc:150};
+  const pres=(V,T)=>n*R*T/V;
+  function advance(dt,now){
+    const base=110*Math.sqrt(st.T/300);
+    P.forEach(p=>{
+      p.x+=p.ux*base*dt/geo.Wc;p.y+=p.uy*base*dt/geo.Hc;
+      if(p.x<0){p.x=-p.x;p.ux=Math.abs(p.ux);}
+      if(p.x>1){p.x=2-p.x;p.ux=-Math.abs(p.ux);st.hits++;st.flash=now;}
+      if(p.y<0){p.y=-p.y;p.uy=Math.abs(p.uy);}
+      if(p.y>1){p.y=2-p.y;p.uy=-Math.abs(p.uy);}
+      p.x=clamp(p.x,0,1);p.y=clamp(p.y,0,1);
+    });
+  }
+  function drawMain(){
+    const {c,w,h}=fit(cv);
+    const ink=cssv('--ink'),mu=cssv('--muted'),ac=cssv('--accent'),mg=cssv('--mag'),soft=cssv('--accent-soft'),ln=cssv('--line');
+    const pad=22,travel=w-2*pad-30,Wc=Math.max(30,st.V/5*travel),Hc=h*.5,x0=pad,y0=(h-Hc)/2-12;
+    geo.Wc=Wc;geo.Hc=Hc;
+    c.fillStyle=soft;c.fillRect(x0,y0,Wc,Hc);
+    const hue=210-(st.T-200)/300*205;
+    c.fillStyle='hsl('+hue+',75%,55%)';c.fillRect(x0-7,y0-2,7,Hc+4);
+    c.strokeStyle=ink;c.lineWidth=2;c.beginPath();c.moveTo(x0,y0);c.lineTo(x0+Wc,y0);c.moveTo(x0,y0+Hc);c.lineTo(x0+Wc,y0+Hc);c.stroke();
+    c.fillStyle=ac;
+    P.forEach(p=>{c.beginPath();c.arc(x0+3.5+p.x*(Wc-7),y0+3.5+p.y*(Hc-7),3.5,0,TAU);c.fill();});
+    const xp=x0+Wc;
+    c.fillStyle=performance.now()-st.flash<90?mg:mu;c.fillRect(xp,y0-4,10,Hc+8);
+    c.strokeStyle=mu;c.lineWidth=6;c.beginPath();c.moveTo(xp+10,y0+Hc/2);c.lineTo(w-pad-6,y0+Hc/2);c.stroke();
+    c.fillStyle=ink;c.fillRect(w-pad-8,y0+Hc/2-20,8,40);
+    c.font='12px '+MONO;c.textAlign='left';c.fillStyle=mu;
+    c.fillText('T = '+fmt(st.T,0)+' K   V = '+fmt(st.V,1)+' L',x0,y0-12);
+    const p=pres(st.V,st.T),gy=y0+Hc+30,gw=w-2*pad;
+    c.fillStyle=ln;c.fillRect(pad,gy,gw,10);
+    c.fillStyle=mg;c.fillRect(pad,gy,gw*clamp(p/900,0,1),10);
+    c.fillStyle=mu;c.fillText('Tekanan '+fmt(p,0)+' kPa',pad,gy-6);
+    c.textAlign='right';c.fillText('900 kPa',w-pad,gy-6);
+  }
+  function drawPV(){
+    const {c,w,h}=fit(pv);
+    const pl=44,pr=12,pt=22,pb=28,W=w-pl-pr,H=h-pt-pb,X=v=>pl+v/5*W,Y=p=>pt+(1-p/900)*H;
+    const ink=cssv('--ink'),mu=cssv('--muted'),ln=cssv('--line'),ac=cssv('--accent'),mg=cssv('--mag');
+    c.font='11px '+MONO;c.lineWidth=1;c.textAlign='right';
+    for(let p=0;p<=900;p+=300){c.strokeStyle=ln;c.beginPath();c.moveTo(pl,Y(p));c.lineTo(w-pr,Y(p));c.stroke();c.fillStyle=mu;c.fillText(p,pl-6,Y(p)+4);}
+    c.textAlign='center';
+    for(let v=0;v<=5;v++){c.strokeStyle=ln;c.beginPath();c.moveTo(X(v),pt);c.lineTo(X(v),Y(0));c.stroke();c.fillStyle=mu;c.fillText(v,X(v),h-12);}
+    const curve=T=>{c.beginPath();for(let v=.5;v<=5.0001;v+=.05){const y=Y(pres(v,T));v===.5?c.moveTo(X(v),y):c.lineTo(X(v),y);}c.stroke();};
+    c.strokeStyle=mu;c.globalAlpha=.55;c.lineWidth=1.5;c.setLineDash([4,4]);curve(200);curve(500);c.setLineDash([]);c.globalAlpha=1;
+    c.fillStyle=mu;c.textAlign='left';c.fillText('500 K',X(.65),Y(pres(.65,500))-6);c.textAlign='right';c.fillText('200 K',w-pr,Y(pres(5,200))-6);
+    c.strokeStyle=ac;c.lineWidth=3;curve(st.T);
+    c.fillStyle=mg;c.beginPath();c.arc(X(st.V),Y(pres(st.V,st.T)),5.5,0,TAU);c.fill();c.strokeStyle=cssv('--surface');c.lineWidth=2;c.stroke();
+    c.fillStyle=mu;c.textAlign='right';c.fillText('V (L)',w-pr,h-1);c.textAlign='left';c.fillText('P (kPa)',4,10);
+  }
+  function upd(){
+    const p=pres(st.V,st.T);
+    $('#gs-p',el).textContent=fmt(p,1);$('#gs-atm',el).textContent=fmt(p/101.325,2);
+    $('#gs-pvv',el).textContent=fmt(p*st.V,1);$('#gs-c',el).textContent=fmt(st.T-273.15,0);
+    $('#gs-hit',el).textContent=st.run||st.rate?fmt(st.rate,0):'–';
+  }
+  function draw(){drawMain();drawPV();}
+  function frame(ts){
+    if(!st.run)return;
+    const dt=Math.min(.05,(ts-st.last)/1000);st.last=ts;
+    advance(dt,performance.now());
+    if(ts-st.hitT>1000){st.rate=st.hits/((ts-st.hitT)/1000);st.hits=0;st.hitT=ts;upd();}
+    drawMain();st.raf=requestAnimationFrame(frame);
+  }
+  function stop(){st.run=false;cancelAnimationFrame(st.raf);}
+  function play(){stop();st.run=true;st.last=st.hitT=performance.now();st.hits=0;st.raf=requestAnimationFrame(frame);$('#gs-pl',el).textContent='Jeda';}
+  function pause(){stop();$('#gs-pl',el).textContent='Lanjutkan';}
+  bind(el,'gs-v',v=>fmt(v,1)+' L',v=>{st.V=v;upd();draw();});
+  bind(el,'gs-t',v=>fmt(v,0)+' K',v=>{st.T=v;upd();draw();});
+  $('#gs-pl',el).addEventListener('click',()=>st.run?pause():play());
+  REG.push({id,group:'Kimia',name:'Hukum Gas Ideal',sub:'Boyle dan Gay-Lussac',el,draw,stop,start(){upd();draw();if(reduce){pause();}else{play();}}});
+})();
+
+/* ---------- 7. Gelombang ---------- */
+(function(){
+  const id='gelombang';
+  const st={f:1,lam:2,A:.5,t:0,run:!reduce,last:0,raf:0};
+  const el=shell(id,'Fisika · Gelombang','Gelombang Transversal',
+    'Atur frekuensi, panjang gelombang, dan amplitudo. Titik penanda di tengah grafik hanya naik turun di tempatnya, sedangkan bentuk gelombang merambat ke kanan. Animasi diperlambat 4 kali.',
+    `<canvas id="gl-cv" style="aspect-ratio:16/9" role="img" aria-label="Grafik gelombang transversal yang merambat ke kanan"></canvas>`,
+    `<div><p class="sect">Variabel</p><div class="ctls">${ctl('gl-f','Frekuensi (f)',.5,5,.1,1)}${ctl('gl-l','Panjang gelombang (λ)',.5,4,.1,2)}${ctl('gl-a','Amplitudo (A)',.1,1,.05,.5)}</div></div>
+     <div class="row"><button class="btn" id="gl-pl" type="button">Jeda</button></div>
+     <div><p class="sect">Hasil perhitungan</p><dl class="reads">${rd('Periode (T)','gl-T','s')}${rd('Cepat rambat (v)','gl-v','m/s')}${rd('Frekuensi sudut (ω)','gl-w','rad/s')}${rd('Bilangan gelombang (k)','gl-k','rad/m')}</dl>
+     <p class="hint">Pada medium nyata, cepat rambat ditentukan oleh mediumnya. Di sini kamu bebas mengatur f dan λ.</p></div>`,
+    `<p>v = f × λ</p><p>T = 1 / f</p><p>y = A sin(kx − ωt)</p><p>k = 2π / λ , ω = 2π f</p>`,
+    ['Naikkan frekuensi dari 1 Hz ke 2 Hz dengan λ tetap. Apa yang terjadi pada cepat rambat dan periode?',
+     'Ubah amplitudo dari 0,2 m ke 1 m. Adakah besaran lain yang ikut berubah?',
+     'Jaga cepat rambat tetap 4 m/s. Jika f dinaikkan dari 2 Hz ke 4 Hz, berapa λ yang harus dipasang?']);
+  const cv=$('#gl-cv',el);
+  function upd(){
+    $('#gl-T',el).textContent=fmt(1/st.f,2);$('#gl-v',el).textContent=fmt(st.f*st.lam,2);
+    $('#gl-w',el).textContent=fmt(TAU*st.f,2);$('#gl-k',el).textContent=fmt(TAU/st.lam,2);
+  }
+  function draw(){
+    const {c,w,h}=fit(cv);
+    const pl=40,pr=14,pt=12,pb=32,W=w-pl-pr,H=h-pt-pb,Ym=1.5;
+    const X=x=>pl+x/8*W,Y=y=>pt+H/2-y/Ym*(H/2);
+    const ink=cssv('--ink'),mu=cssv('--muted'),ln=cssv('--line'),ac=cssv('--accent'),mg=cssv('--mag');
+    c.font='11px '+MONO;c.lineWidth=1;c.textAlign='right';
+    [[1,'1'],[0,'0'],[-1,'−1']].forEach(([y,l])=>{c.strokeStyle=y===0?mu:ln;c.beginPath();c.moveTo(pl,Y(y));c.lineTo(w-pr,Y(y));c.stroke();c.fillStyle=mu;c.fillText(l,pl-8,Y(y)+4);});
+    c.textAlign='center';
+    for(let x=0;x<=8;x++){c.strokeStyle=ln;c.beginPath();c.moveTo(X(x),Y(Ym));c.lineTo(X(x),Y(-Ym));c.stroke();c.fillStyle=mu;c.fillText(x,X(x),Y(-Ym)+14);}
+    c.textAlign='right';c.fillText('x (m)',w-pr,h-3);c.textAlign='left';c.fillText('y (m)',4,12);
+    const yy=x=>st.A*Math.sin(TAU*(x/st.lam-st.f*st.t));
+    c.strokeStyle=ac;c.lineWidth=3;c.beginPath();
+    for(let i=0;i<=240;i++){const x=8*i/240;i?c.lineTo(X(x),Y(yy(x))):c.moveTo(X(x),Y(yy(x)));}
+    c.stroke();
+    c.setLineDash([4,4]);c.strokeStyle=mu;c.lineWidth=1;c.beginPath();c.moveTo(X(4),Y(Ym));c.lineTo(X(4),Y(-Ym));c.stroke();c.setLineDash([]);
+    c.fillStyle=mg;c.beginPath();c.arc(X(4),Y(yy(4)),6,0,TAU);c.fill();c.strokeStyle=cssv('--surface');c.lineWidth=2;c.stroke();
+    const x1=.5,x2=.5+st.lam,yb=Y(-1.3);
+    c.strokeStyle=ink;c.lineWidth=2;c.beginPath();c.moveTo(X(x1),yb);c.lineTo(X(x2),yb);c.moveTo(X(x1),yb-5);c.lineTo(X(x1),yb+5);c.moveTo(X(x2),yb-5);c.lineTo(X(x2),yb+5);c.stroke();
+    c.fillStyle=ink;c.font='12px '+MONO;c.textAlign='center';c.fillText('λ = '+fmt(st.lam,1)+' m',X((x1+x2)/2),yb-8);
+    c.strokeStyle=ink;c.beginPath();c.moveTo(X(7.6),Y(0));c.lineTo(X(7.6),Y(st.A));c.moveTo(X(7.6)-5,Y(st.A));c.lineTo(X(7.6)+5,Y(st.A));c.stroke();
+    c.textAlign='right';c.fillText('A = '+fmt(st.A,2)+' m',w-pr,Y(1.4));
+  }
+  function frame(ts){
+    if(!st.run)return;
+    const dt=Math.min(.05,(ts-st.last)/1000);st.last=ts;st.t+=dt*.25;draw();st.raf=requestAnimationFrame(frame);
+  }
+  function stop(){st.run=false;cancelAnimationFrame(st.raf);}
+  function play(){stop();st.run=true;st.last=performance.now();st.raf=requestAnimationFrame(frame);$('#gl-pl',el).textContent='Jeda';}
+  function pause(){stop();$('#gl-pl',el).textContent='Lanjutkan';}
+  bind(el,'gl-f',v=>fmt(v,1)+' Hz',v=>{st.f=v;upd();draw();});
+  bind(el,'gl-l',v=>fmt(v,1)+' m',v=>{st.lam=v;upd();draw();});
+  bind(el,'gl-a',v=>fmt(v,2)+' m',v=>{st.A=v;draw();});
+  $('#gl-pl',el).addEventListener('click',()=>st.run?pause():play());
+  REG.push({id,group:'Fisika',name:'Gelombang Transversal',sub:'Frekuensi dan panjang gelombang',el,draw,stop,start(){upd();draw();if(reduce){pause();}else{play();}}});
+})();
+
+/* ---------- 8. Laju reaksi ---------- */
+(function(){
+  const id='laju';
+  const BW=560,BH=200,r=6;
+  const st={N:25,T:310,cat:false,run:!reduce,last:0,raf:0,acc:0,t:0,prod:0,hist:[{t:0,n:0}],lastH:0,parts:[]};
+  const el=shell(id,'Kimia · Kinetika','Laju Reaksi dan Tumbukan',
+    'Reaksi A + B → C. Pereaksi hanya berubah menjadi produk jika tumbukannya cukup energik. Ubah suhu, jumlah pereaksi, dan katalis, lalu bandingkan kurva produknya. Ini model tumbukan sederhana.',
+    `<canvas id="lj-cv" style="aspect-ratio:560/270" role="img" aria-label="Kotak berisi partikel pereaksi A, B, dan produk C yang bergerak"></canvas>
+     <div><p class="sect">Produk terbentuk terhadap waktu</p><canvas id="lj-ch" style="aspect-ratio:16/6" role="img" aria-label="Grafik jumlah produk terhadap waktu"></canvas></div>`,
+    `<div><p class="sect">Variabel</p><div class="ctls">
+       ${ctl('lj-n','Jumlah tiap pereaksi',10,40,1,25)}${ctl('lj-t','Suhu (T)',280,350,5,310)}
+       <div><p class="sect" style="margin-bottom:6px">Katalis</p><div class="seg" role="group" aria-label="Katalis">
+         <button type="button" id="lj-nc" aria-pressed="true">Tanpa katalis</button><button type="button" id="lj-c" aria-pressed="false">Dengan katalis</button></div></div>
+     </div></div>
+     <div class="row"><button class="btn" id="lj-pl" type="button">Jeda</button><button class="btn ghost" id="lj-rs" type="button">Ulangi reaksi</button></div>
+     <div><p class="sect">Hasil pengamatan</p><dl class="reads">
+       ${rd('Produk (C)','lj-p','')}${rd('Pereaksi A tersisa','lj-a','')}${rd('Laju terakhir','lj-r','produk/s')}${rd('Peluang efektif','lj-e','%')}
+     </dl><p class="hint">Peluang efektif adalah bagian tumbukan A dan B yang berhasil membentuk C. Nilainya naik bersama suhu dan turun saat energi aktivasi besar.</p></div>`,
+    `<p>A + B → C</p><p>Laju = Δ[produk] / Δt</p><p>Peluang efektif ~ e<sup>−Ea / RT</sup></p><p>Ea tanpa katalis 50 kJ/mol, dengan katalis 45 kJ/mol</p>`,
+    ['Naikkan suhu dari 300 K ke 320 K lalu bandingkan kurva produknya. Mengapa kurvanya lebih curam?',
+     'Tambah jumlah tiap pereaksi dari 15 ke 35 pada suhu yang sama. Apa yang terjadi pada laju awal?',
+     'Aktifkan katalis pada suhu yang sama. Apa yang berubah dan apa yang tidak berubah?']);
+  const cv=$('#lj-cv',el),ch=$('#lj-ch',el);
+  const pEff=()=>{const Ea=st.cat?45000:50000;return Math.min(.9,.06*Math.exp(-(Ea/8.314)*(1/st.T-1/300))*Math.exp((50000-Ea)/(8.314*300)));};
+  function init(){
+    st.t=0;st.prod=0;st.hist=[{t:0,n:0}];st.lastH=0;st.acc=0;st.parts=[];
+    const sp=140*Math.sqrt(st.T/300);
+    for(let i=0;i<2*st.N;i++){
+      const a=Math.random()*TAU,s=sp*(.6+Math.random()*.8);
+      st.parts.push({x:r+Math.random()*(BW-2*r),y:r+Math.random()*(BH-2*r),vx:Math.cos(a)*s,vy:Math.sin(a)*s,k:i<st.N?'A':'B'});
+    }
+  }
+  function step(h){
+    const P=st.parts,pe=pEff();
+    for(const p of P){
+      p.x+=p.vx*h;p.y+=p.vy*h;
+      if(p.x<r){p.x=r;p.vx=Math.abs(p.vx);}if(p.x>BW-r){p.x=BW-r;p.vx=-Math.abs(p.vx);}
+      if(p.y<r){p.y=r;p.vy=Math.abs(p.vy);}if(p.y>BH-r){p.y=BH-r;p.vy=-Math.abs(p.vy);}
+    }
+    for(let i=0;i<P.length;i++){
+      const a=P[i];
+      for(let j=i+1;j<P.length;j++){
+        const b=P[j],dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;
+        if(d2<4*r*r&&d2>1e-9){
+          const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,rel=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
+          if(rel<0){
+            a.vx-=rel*nx;a.vy-=rel*ny;b.vx+=rel*nx;b.vy+=rel*ny;
+            if(a.k!=='C'&&b.k!=='C'&&a.k!==b.k&&Math.random()<pe){a.k='C';b.k='C';st.prod++;}
+          }
+          const o=(2*r-d)/2;a.x+=nx*o;a.y+=ny*o;b.x-=nx*o;b.y-=ny*o;
+        }
+      }
+    }
+    st.t+=h;
+    if(st.t-st.lastH>=.25){st.hist.push({t:st.t,n:st.prod});st.lastH=st.t;}
+  }
+  function rate(){
+    const H=st.hist,last=H[H.length-1];let i=H.length-1;
+    while(i>0&&last.t-H[i].t<2)i--;
+    const dt=last.t-H[i].t;return dt>0?(last.n-H[i].n)/dt:0;
+  }
+  function upd(){
+    $('#lj-p',el).textContent=st.prod+' dari '+st.N;
+    $('#lj-a',el).textContent=st.parts.filter(p=>p.k==='A').length;
+    $('#lj-r',el).textContent=fmt(rate(),1);
+    $('#lj-e',el).textContent=fmt(pEff()*100,0);
+  }
+  function drawMain(){
+    const {c,w,h}=fit(cv);
+    const pad=12,s=(w-2*pad)/BW,ox=pad,oy=h-pad-BH*s,R=r*s;
+    const ink=cssv('--ink'),mu=cssv('--muted'),ac=cssv('--accent'),mg=cssv('--mag'),soft=cssv('--accent-soft');
+    c.fillStyle=soft;c.fillRect(ox,oy,BW*s,BH*s);c.strokeStyle=ink;c.lineWidth=2;c.strokeRect(ox,oy,BW*s,BH*s);
+    st.parts.forEach(p=>{
+      const x=ox+p.x*s,y=oy+p.y*s;c.beginPath();c.arc(x,y,R,0,TAU);
+      if(p.k==='C'){c.strokeStyle=mu;c.lineWidth=2;c.stroke();}else{c.fillStyle=p.k==='A'?ac:mg;c.fill();}
+    });
+    c.font='12px '+MONO;c.textAlign='left';c.textBaseline='middle';
+    const ly=oy-16;let lx=ox;
+    [['A',ac,true],['B',mg,true],['C (produk)',mu,false]].forEach(([t,col,fill])=>{
+      c.beginPath();c.arc(lx+6,ly,6,0,TAU);
+      if(fill){c.fillStyle=col;c.fill();}else{c.strokeStyle=col;c.lineWidth=2;c.stroke();}
+      c.fillStyle=ink;c.fillText(t,lx+16,ly);lx+=16+c.measureText(t).width+16;
+    });
+    c.textAlign='right';c.fillStyle=mu;c.fillText('T = '+fmt(st.T,0)+' K',w-pad,ly);c.textBaseline='alphabetic';
+  }
+  function drawChart(){
+    const {c,w,h}=fit(ch);
+    const pl=40,pr=12,pt=22,pb=28,W=w-pl-pr,H=h-pt-pb;
+    const tmax=Math.max(20,Math.ceil(st.t/10)*10),X=t=>pl+t/tmax*W,Y=n=>pt+(1-n/st.N)*H;
+    const ink=cssv('--ink'),mu=cssv('--muted'),ln=cssv('--line'),ac=cssv('--accent'),mg=cssv('--mag');
+    c.font='11px '+MONO;c.lineWidth=1;c.textAlign='right';
+    const sy=niceStep(st.N,4);
+    for(let n=0;n<=st.N+1e-9;n+=sy){c.strokeStyle=ln;c.beginPath();c.moveTo(pl,Y(n));c.lineTo(w-pr,Y(n));c.stroke();c.fillStyle=mu;c.fillText(tick(n),pl-6,Y(n)+4);}
+    c.textAlign='center';const sx=niceStep(tmax,5);
+    for(let t=0;t<=tmax+1e-9;t+=sx){c.strokeStyle=ln;c.beginPath();c.moveTo(X(t),pt);c.lineTo(X(t),pt+H);c.stroke();c.fillStyle=mu;c.fillText(tick(t),X(t),h-12);}
+    c.strokeStyle=ac;c.lineWidth=3;c.beginPath();
+    st.hist.forEach((p,i)=>i?c.lineTo(X(p.t),Y(p.n)):c.moveTo(X(p.t),Y(p.n)));c.stroke();
+    const l=st.hist[st.hist.length-1];c.fillStyle=mg;c.beginPath();c.arc(X(l.t),Y(l.n),4.5,0,TAU);c.fill();
+    c.fillStyle=mu;c.textAlign='right';c.fillText('waktu (s)',w-pr,h-1);c.textAlign='left';c.fillText('produk',4,10);
+  }
+  function draw(){drawMain();drawChart();}
+  function frame(ts){
+    if(!st.run)return;
+    const dt=Math.min(.05,(ts-st.last)/1000);st.last=ts;st.acc+=dt;
+    const h=1/120;while(st.acc>=h){step(h);st.acc-=h;}
+    draw();upd();st.raf=requestAnimationFrame(frame);
+  }
+  function stop(){st.run=false;cancelAnimationFrame(st.raf);}
+  function play(){stop();st.run=true;st.last=performance.now();st.raf=requestAnimationFrame(frame);$('#lj-pl',el).textContent='Jeda';}
+  function pause(){stop();$('#lj-pl',el).textContent='Lanjutkan';}
+  function restart(){init();upd();draw();}
+  bind(el,'lj-n',v=>fmt(v,0),v=>{st.N=v;restart();});
+  bind(el,'lj-t',v=>fmt(v,0)+' K',v=>{const f=Math.sqrt(v/st.T);st.T=v;st.parts.forEach(p=>{p.vx*=f;p.vy*=f;});upd();draw();});
+  const cat=on=>{st.cat=on;$('#lj-nc',el).setAttribute('aria-pressed',String(!on));$('#lj-c',el).setAttribute('aria-pressed',String(on));upd();};
+  $('#lj-nc',el).addEventListener('click',()=>cat(false));
+  $('#lj-c',el).addEventListener('click',()=>cat(true));
+  $('#lj-pl',el).addEventListener('click',()=>st.run?pause():play());
+  $('#lj-rs',el).addEventListener('click',restart);
+  init();
+  REG.push({id,group:'Kimia',name:'Laju Reaksi dan Tumbukan',sub:'Tumbukan dan katalis',el,draw,stop,start(){upd();draw();if(reduce){pause();}else{play();}}});
+})();
+
+/* ---------- urutan dan nomor eksperimen ---------- */
+const ORDER=['parabola','bandul','ohm','gelombang','titrasi','ph','gas','laju'];
+const NUMS=['3.1','3.2','3.3','3.4','4.1','4.2','4.3','4.4'];
+REG.sort((a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id));
+REG.forEach(e=>{e.num=NUMS[ORDER.indexOf(e.id)];e.el.querySelector('.title').textContent=e.num+' '+e.name;});
+
+/* ---------- kunci jawaban, kuis, rapor, profil ---------- */
+const KEY={
+  parabola:[
+    `45°. Dengan v₀ = 25 m/s dan g = 9,81 m/s²: 30° memberi 55,2 m, 45° memberi 63,7 m, dan 60° memberi 55,2 m. Jarak maksimum terjadi saat sin 2θ = 1.`,
+    `Sudut yang berpasangan (θ dan 90° − θ) menghasilkan sin 2θ yang sama, sehingga R sama. Bedanya, sudut 60° terbang lebih tinggi dan lebih lama daripada 30°.`,
+    `Tinggi maksimum dan waktu terbang sama-sama berbanding terbalik dengan g, jadi di Bulan keduanya sekitar 6 kali lebih besar (9,81 ÷ 1,62 ≈ 6,1). Jarak juga menjadi sekitar 6 kali, sedangkan kecepatan mendatar tidak berubah.`],
+  bandul:[
+    `Tidak berubah. Rumus T = 2π√(L/g) tidak memuat massa, jadi periode hanya bergantung pada L dan g.`,
+    `Menjadi 2 kali lipat, karena T sebanding dengan akar L dan √4 = 2. Contohnya L = 0,5 m memberi T ≈ 1,42 s dan L = 2 m memberi T ≈ 2,84 s di Bumi.`,
+    `Rumus T hanya tepat untuk simpangan kecil, saat sin θ ≈ θ. Pada 80° gaya pemulih lebih kecil daripada pendekatan itu, sehingga ayunan lebih lambat dan periode sekitar 14 persen lebih panjang.`],
+  ohm:[
+    `R total naik, arus total turun, V₁ = I × R₁ ikut turun, dan V₂ naik. Jumlah V₁ + V₂ tetap sama dengan tegangan sumber.`,
+    `Pada paralel 1/R = 1/R₁ + 1/R₂, sehingga 1/R selalu lebih besar daripada 1/R dari hambatan mana pun dan R lebih kecil dari semua hambatan cabang. Tiap cabang menambah jalur bagi arus.`,
+    `Contoh seri 12 V dengan 20 Ω dan 30 Ω: R = 50 Ω, I = 0,24 A, P = 12 × 0,24 = 2,88 W, dan energi per menit = 2,88 × 60 = 172,8 J (simulasi membulatkan menjadi 173 J).`],
+  titrasi:[
+    `Untuk HCl dan metil jingga, warna berubah tuntas antara sekitar 24,8 dan 25 mL, jadi hampir tepat di titik ekuivalen. Pada asam lemah, warna sudah berubah tuntas sebelum sekitar 8 mL, jauh dari 25 mL, sehingga metil jingga tidak cocok.`,
+    `Di titik ekuivalen asam lemah, larutan berisi ion asetat. Ion ini basa konjugat dan bereaksi dengan air menghasilkan OH⁻, sehingga pH sekitar 8,7. Pada asam kuat dan basa kuat, garam NaCl tidak bereaksi dengan air, jadi pH tepat 7.`,
+    `Di sekitar 24,9 sampai 25,1 mL. Untuk asam kuat, pH naik dari 3,70 ke 7,00 lalu 10,30 hanya dalam 0,2 mL.`],
+  ph:[
+    `Setiap turun 1 satuan pH, [H⁺] naik 10 kali. Dari pH 7 ke 4 ada 3 satuan, jadi 10³ = 1.000 kali.`,
+    `Jus lemon (pH 2,0) lebih asam daripada cuka (pH 2,9). Selisih 0,9 satuan berarti 10 pangkat 0,9, yaitu sekitar 7,9 kali.`,
+    `Pemutih dalam daftar, pH 12,5 dengan [OH⁻] sekitar 3,2×10⁻² mol/L. Warna indikator universalnya ungu.`],
+  gas:[
+    `Tekanan menjadi dua kali lipat (hukum Boyle, P₁V₁ = P₂V₂). Pada 300 K, volume 2,5 L memberi sekitar 99,8 kPa dan volume 1,25 L memberi sekitar 199,6 kPa. Slider berlangkah 0,1 L, jadi coba 1,2 atau 1,3 L sebagai pendekatan.`,
+    `Perbandingan suhu 450/300 = 1,5 dan perbandingan tekanan juga 1,5 (sekitar 99,8 kPa menjadi 149,7 kPa). Ini hukum Gay-Lussac: P sebanding dengan T mutlak saat V tetap.`,
+    `Saat volume kecil, jarak antar dinding pendek sehingga partikel menumbuk piston lebih sering per detik. Tumbukan lebih sering berarti gaya per luas lebih besar, yaitu tekanan lebih tinggi.`],
+  gelombang:[
+    `v = f × λ, jadi frekuensi 1 Hz ke 2 Hz dengan λ tetap membuat cepat rambat menjadi dua kali lipat, sedangkan periode menjadi setengahnya.`,
+    `Tidak ada. Amplitudo hanya mengubah tinggi gelombang (dan energinya), bukan f, λ, atau v = f × λ.`,
+    `Menjadi setengahnya. Dengan v = 4 m/s: f = 2 Hz memberi λ = 2 m, dan f = 4 Hz memberi λ = 1 m.`],
+  laju:[
+    `Pada suhu lebih tinggi, partikel bergerak lebih cepat dan lebih banyak tumbukan memiliki energi minimal untuk bereaksi (energi aktivasi). Di simulasi, peluang tumbukan efektif naik dari sekitar 6% pada 300 K menjadi sekitar 21% pada 320 K.`,
+    `Pereaksi yang lebih banyak di kotak yang sama membuat partikel lebih rapat, sehingga tumbukan A dan B lebih sering dan produk terbentuk lebih cepat. Laju awal naik.`,
+    `Katalis menurunkan energi aktivasi (di simulasi dari 50 ke 45 kJ/mol), sehingga peluang tumbukan efektif pada 300 K naik dari 6% menjadi sekitar 44%. Katalis tidak ikut habis dan tidak mengubah jumlah produk akhir, hanya mempercepat tercapainya.`]
+};
+const QUIZ={
+  parabola:[
+    {q:'Peluru ditembakkan dengan v₀ sama di Bumi. Sudut mana yang memberi jarak terjauh?',o:['30°','45°','60°','90°'],a:1,why:'R = v₀² sin 2θ / g bernilai maksimum saat sin 2θ = 1, yaitu θ = 45°. Pada 90° peluru hanya naik dan turun.'},
+    {q:'Di titik puncak lintasan, komponen kecepatan mana yang bernilai nol?',o:['Komponen mendatar','Komponen tegak','Keduanya','Tidak ada'],a:1,why:'Komponen tegak berbalik arah di puncak sehingga nol. Komponen mendatar tetap v₀ cos θ karena tidak ada gaya mendatar.'},
+    {q:'Dengan v₀ dan θ tetap, g dibuat lebih kecil (misalnya di Bulan). Waktu terbang menjadi...',o:['Lebih lama','Lebih singkat','Sama saja','Nol'],a:0,why:'T = 2 v₀ sin θ / g berbanding terbalik dengan g, jadi g kecil memberi waktu terbang lebih lama.'}],
+  bandul:[
+    {q:'Besaran mana yang tidak memengaruhi periode bandul sederhana?',o:['Panjang tali','Percepatan gravitasi','Massa bandul','Semuanya memengaruhi'],a:2,why:'T = 2π√(L/g) tidak memuat massa.'},
+    {q:'Panjang tali dijadikan 9 kali lipat. Periode menjadi berapa kali semula?',o:['3 kali','9 kali','1/3 kali','81 kali'],a:0,why:'T sebanding dengan akar L, dan √9 = 3.'},
+    {q:'Bandul yang sama diayunkan di Bulan (g lebih kecil). Periodenya dibanding di Bumi?',o:['Lebih besar','Lebih kecil','Sama','Nol'],a:0,why:'T sebanding dengan 1/√g, jadi g lebih kecil memberi periode lebih besar.'}],
+  ohm:[
+    {q:'Hambatan 20 Ω dan 30 Ω disusun seri. Hambatan totalnya?',o:['12 Ω','25 Ω','50 Ω','600 Ω'],a:2,why:'Seri: R = R₁ + R₂ = 20 + 30 = 50 Ω.'},
+    {q:'Hambatan 20 Ω dan 30 Ω disusun paralel. Hambatan totalnya?',o:['50 Ω','12 Ω','25 Ω','10 Ω'],a:1,why:'R = (20 × 30) / (20 + 30) = 600 / 50 = 12 Ω.'},
+    {q:'Pada rangkaian paralel, besaran yang sama di setiap cabang adalah...',o:['Arus','Tegangan','Hambatan','Daya'],a:1,why:'Semua cabang tersambung ke dua titik yang sama, jadi tegangannya sama. Arus terbagi menurut hambatan tiap cabang.'}],
+  titrasi:[
+    {q:'25 mL HCl 0,1 M dititrasi dengan NaOH 0,1 M. Volume NaOH di titik ekuivalen?',o:['12,5 mL','25 mL','50 mL','0,1 mL'],a:1,why:'Mol asam = mol basa, dan konsentrasinya sama, jadi volumenya sama: 25 mL.'},
+    {q:'pH larutan di titik ekuivalen pada titrasi asam kuat dengan basa kuat adalah...',o:['Kurang dari 7','Tepat 7','Lebih dari 7','14'],a:1,why:'Hasilnya garam netral (NaCl) yang tidak bereaksi dengan air, jadi pH = 7.'},
+    {q:'Titrasi asam lemah dengan basa kuat paling cocok memakai indikator...',o:['Metil jingga','Bromtimol biru','Fenolftalein','Semuanya sama baik'],a:2,why:'pH titik ekuivalennya sekitar 8,7, berada dalam rentang perubahan fenolftalein (8,2 sampai 10).'}],
+  ph:[
+    {q:'Larutan pH 3 dibanding larutan pH 5. [H⁺] larutan pH 3 lebih besar...',o:['2 kali','20 kali','100 kali','1.000 kali'],a:2,why:'Selisih 2 satuan pH berarti 10² = 100 kali.'},
+    {q:'Jika pH suatu larutan 9, nilai pOH-nya adalah...',o:['5','9','14','23'],a:0,why:'pH + pOH = 14, jadi pOH = 14 − 9 = 5.'},
+    {q:'Larutan bersifat basa jika...',o:['pH kurang dari 7','pH sama dengan 7','pH lebih dari 7','[H⁺] lebih besar dari [OH⁻]'],a:2,why:'Pada 25 °C, pH di atas 7 berarti [OH⁻] lebih besar daripada [H⁺].'}],
+  gas:[
+    {q:'Gas dalam wadah tertutup pada suhu tetap. Volume dijadikan 1/3 semula. Tekanan menjadi...',o:['1/3 kali','Tetap','3 kali','9 kali'],a:2,why:'Hukum Boyle: P × V tetap, jadi volume 1/3 memberi tekanan 3 kali.'},
+    {q:'Volume tetap dan suhu mutlak dinaikkan dua kali. Tekanan menjadi...',o:['Setengah','Tetap','Dua kali','Empat kali'],a:2,why:'Hukum Gay-Lussac: P sebanding dengan T mutlak saat V tetap.'},
+    {q:'Mengapa tekanan naik saat suhu naik pada volume tetap?',o:['Partikel bergerak lebih cepat sehingga menumbuk dinding lebih sering dan lebih keras','Jumlah partikel bertambah','Partikel menjadi lebih besar','Volume wadah mengecil'],a:0,why:'Suhu lebih tinggi berarti energi kinetik partikel lebih besar, sehingga tumbukan ke dinding lebih sering dan lebih keras.'}],
+  gelombang:[
+    {q:'Gelombang berfrekuensi 2 Hz dan panjang gelombang 3 m. Cepat rambatnya?',o:['1,5 m/s','5 m/s','6 m/s','0,67 m/s'],a:2,why:'v = f × λ = 2 × 3 = 6 m/s.'},
+    {q:'Periode gelombang yang berfrekuensi 4 Hz adalah...',o:['0,25 s','4 s','0,4 s','2,5 s'],a:0,why:'T = 1 / f = 1 / 4 = 0,25 s.'},
+    {q:'Cepat rambat tetap dan frekuensi dinaikkan. Panjang gelombang...',o:['Bertambah','Berkurang','Tetap','Menjadi nol'],a:1,why:'λ = v / f, jadi saat f naik dan v tetap, λ berkurang.'}],
+  laju:[
+    {q:'Menaikkan suhu mempercepat reaksi terutama karena...',o:['Lebih banyak tumbukan yang energinya mencapai energi aktivasi','Jumlah pereaksi bertambah','Energi aktivasi menjadi naik','Produk yang terbentuk menjadi lebih sedikit'],a:0,why:'Pada suhu tinggi, bagian tumbukan yang cukup energik meningkat tajam, selain tumbukan juga lebih sering.'},
+    {q:'Fungsi katalis dalam reaksi adalah...',o:['Menurunkan energi aktivasi','Menambah jumlah produk akhir','Menaikkan suhu campuran','Habis bereaksi'],a:0,why:'Katalis membuka jalur reaksi dengan energi aktivasi lebih rendah dan tidak habis bereaksi.'},
+    {q:'Konsentrasi pereaksi diperbesar. Laju reaksi umumnya...',o:['Naik','Turun','Tetap','Menjadi nol'],a:0,why:'Partikel lebih rapat sehingga tumbukan lebih sering dan produk terbentuk lebih cepat.'}]
+};
+const quizResets=[];
+function rapor(){
+  const sk=store.get('skor',{}),pf=store.get('profil',{});
+  const who=[pf.nama,pf.kelas,pf.sch].filter(Boolean).join(' · ');
+  $('#rapor-who').textContent=who||'Isi profil di bagian Panduan agar namamu tampil di sini.';
+  let sum=0,done=0;
+  $('#rapor-tb').innerHTML=REG.map(e=>{
+    const v=sk[e.id],ok=typeof v==='number';
+    if(ok){sum+=v;done++;}
+    return `<tr><td><i class="dot" data-c="${e.id}"></i>${e.num} ${e.name}</td><td>${e.group}</td><td>${ok?v+' / 3':'belum'}</td></tr>`;
+  }).join('');
+  const max=REG.length*3;
+  $('#rapor-sum').textContent=`${done} dari ${REG.length} kuis dikerjakan, skor ${sum} dari ${max}.`;
+  $('#rapor-nilai').textContent=fmt(sum/max*100,0);
+}
+REG.forEach(e=>{
+  const key=KEY[e.id],qz=QUIZ[e.id];
+  e.el.querySelector('.notes ol').insertAdjacentHTML('afterend',`<details class="key"><summary>Lihat kunci jawaban</summary><ol>${key.map(k=>`<li>${k}</li>`).join('')}</ol></details>`);
+  const box=document.createElement('section');
+  box.className='quiz';box.setAttribute('aria-label','Kuis '+e.num+' '+e.name);
+  box.innerHTML=`<h3>Kuis ${e.num} ${e.name}</h3>`+qz.map((q,i)=>`<fieldset class="q"><legend>${i+1}. ${q.q}</legend>${q.o.map((o,j)=>`<label><input type="radio" name="qz-${e.id}-${i}" value="${j}"><span>${o}</span></label>`).join('')}<p class="why" hidden></p></fieldset>`).join('')
+    +`<div class="row"><button type="button" class="btn" data-act="check">Periksa jawaban</button><button type="button" class="btn ghost" data-act="again">Ulangi kuis</button></div><p class="score" aria-live="polite"></p>`;
+  e.el.appendChild(box);
+  const score=$('.score',box),sets=[...box.querySelectorAll('fieldset.q')];
+  const saved=store.get('skor',{})[e.id];
+  score.textContent=typeof saved==='number'?`Skor tersimpan: ${saved} dari 3.`:'';
+  function clear(){sets.forEach(f=>{f.classList.remove('ok','no');$('.why',f).hidden=true;f.querySelectorAll('input').forEach(i=>{i.checked=false;});});score.textContent='';}
+  quizResets.push(clear);
+  box.addEventListener('click',ev=>{
+    const b=ev.target.closest('button[data-act]');if(!b)return;
+    if(b.dataset.act==='again'){clear();return;}
+    let n=0,blank=0;
+    sets.forEach((f,i)=>{
+      const sel=f.querySelector('input:checked'),why=$('.why',f);
+      f.classList.remove('ok','no');why.hidden=false;
+      if(!sel){blank++;why.innerHTML='<b>Belum dijawab.</b> Pilih satu jawaban dulu.';return;}
+      const good=+sel.value===qz[i].a;
+      if(good)n++;
+      f.classList.add(good?'ok':'no');
+      why.innerHTML=`<b>${good?'Benar.':'Kurang tepat.'}</b> ${good?'':'Jawaban yang benar: '+qz[i].o[qz[i].a]+'. '}${qz[i].why}`;
+    });
+    if(blank){score.textContent=`Masih ada ${blank} soal yang belum dijawab.`;return;}
+    score.textContent=`Skor: ${n} dari 3.`;
+    const sk=store.get('skor',{});sk[e.id]=n;store.set('skor',sk);rapor();
+  });
+});
+(function(){
+  const F={nama:$('#pf-nama'),kelas:$('#pf-kelas'),sch:$('#pf-sch')};
+  const pf=store.get('profil',{});
+  Object.keys(F).forEach(k=>{F[k].value=pf[k]||'';F[k].addEventListener('input',()=>{const o=store.get('profil',{});o[k]=F[k].value.trim();store.set('profil',o);rapor();});});
+  const rs=$('#rapor-rs');let armed=false;
+  rs.addEventListener('click',()=>{
+    if(!armed){armed=true;rs.textContent='Klik lagi untuk menghapus semuanya';setTimeout(()=>{armed=false;rs.textContent='Hapus skor dan catatan';},4000);return;}
+    armed=false;rs.textContent='Hapus skor dan catatan';
+    store.set('skor',{});store.set('catatan',[]);
+    REG.forEach(e=>e.resetData&&e.resetData());quizResets.forEach(f=>f());rapor();
+  });
+  rapor();
+})();
+
+/* ---------- navigasi ---------- */
+(function(){
+  const pk=$('#picker');
+  ['Fisika','Kimia'].forEach(g=>{
+    const items=REG.filter(e=>e.group===g);
+    pk.insertAdjacentHTML('beforeend',`<div class="group"><h2>${g}</h2><div class="tabs" role="tablist" aria-label="Eksperimen ${g}">${items.map(e=>`<button type="button" class="tab" role="tab" data-c="${e.id}" id="tab-${e.id}" aria-controls="exp-${e.id}" aria-selected="false"><b>${e.num} ${e.name}</b><span>${e.sub}</span></button>`).join('')}</div></div>`);
+  });
+  pk.addEventListener('click',ev=>{const b=ev.target.closest('.tab');if(b)select(b.id.slice(4),true);});
+})();
+function select(id,push){
+  const cur=REG.find(e=>e.id===id)||REG[0];
+  if(active&&active!==cur)active.stop();
+  REG.forEach(e=>{e.el.hidden=e!==cur;$('#tab-'+e.id).setAttribute('aria-selected',String(e===cur));});
+  active=cur;cur.start();
+  if(push){try{location.hash=cur.id;}catch(err){}}
+}
+let rq=0;
+const redraw=()=>{cancelAnimationFrame(rq);rq=requestAnimationFrame(()=>active&&active.draw());};
+addEventListener('resize',redraw);
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(REG.some(e=>e.id===h))select(h,false);});
+select(location.hash.slice(1),false);
+</script>
+<script>
+/* portal masuk: skrip terpisah agar tetap berjalan walau skrip utama gagal */
+(function(){
+  var g=document.getElementById('gate');if(!g)return;
+  var root=document.documentElement,wrap=document.querySelector('.wrap');
+  if(location.hash.length>1){g.hidden=true;return;}
+  var form=document.getElementById('gate-form'),inp=document.getElementById('gate-nama'),go=document.getElementById('gate-go');
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saved='';
+  try{var pf=JSON.parse(localStorage.getItem('labsains.profil')||'{}');saved=pf.nama||'';}catch(e){}
+  if(saved){
+    inp.value=saved;
+    document.getElementById('gate-kick').textContent='Selamat datang kembali';
+    document.getElementById('gate-golabel').textContent='Masuk lagi';
+  }
+  root.classList.add('is-gate');
+  if(wrap)wrap.inert=true;
+  if(reduce){
+    g.querySelectorAll('svg').forEach(function(s){if(s.pauseAnimations)s.pauseAnimations();});
+  }else{
+    var trk=g.querySelector('.gt-track');if(trk)trk.innerHTML+=trk.innerHTML;
+  }
+  try{go.focus({preventScroll:true});}catch(e){}
+  form.addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var n=inp.value.trim(),t=document.getElementById('pf-nama');
+    if(n&&t){t.value=n;t.dispatchEvent(new Event('input',{bubbles:true}));}
+    g.classList.add('out');
+    setTimeout(function(){
+      g.hidden=true;root.classList.remove('is-gate');
+      if(wrap)wrap.inert=false;
+      window.scrollTo(0,0);
+      var h=document.querySelector('.intro h1');
+      if(h){h.setAttribute('tabindex','-1');try{h.focus({preventScroll:true});}catch(e){}}
+    },reduce?0:600);
+  });
+})();
+</script>
+
+</body>
+</html>
